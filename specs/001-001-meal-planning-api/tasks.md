@@ -14,15 +14,15 @@
 
 - [X] T006 Define Prisma schema from `data-model.md` in `prisma/schema.prisma`
 - [X] T007 Create initial migration and generate Prisma client in `prisma/migrations/`
-- [ ] T008 [P] Add Prisma client wrapper and database config in `src/infrastructure/database/prisma/client.ts` and `src/infrastructure/config/database.config.ts`
-- [ ] T009 [P] Add shared enums and value objects (DayOfWeek, ShortDay, WeekStartDay, StorageType) in `src/domain/shared/`
-- [ ] T010 [P] Add `Result` helper for domain/application errors in `src/domain/shared/result.ts`
-- [ ] T011 Implement DI container skeleton and interfaces in `src/infrastructure/di/container.ts`
-- [ ] T012 Setup HTTP server bootstrap and route registry in `src/index.ts` and `src/infrastructure/http/routes/index.ts`
-- [ ] T013 Add auth and tenant isolation middleware placeholders in `src/infrastructure/http/middleware/auth.middleware.ts` and `tenant-isolation.middleware.ts`
-- [ ] T014 Add global error and validation middleware in `src/infrastructure/http/middleware/error-handler.middleware.ts` and `validation.middleware.ts`
-- [ ] T015 Add common DTO primitives (error/pagination) in `src/infrastructure/http/dtos/common.dto.ts`
-- [ ] T016 Add test harness setup (Bun test config, database test utils) in `tests/setup.ts`
+- [X] T008 [P] Add Prisma client wrapper and database config in `src/infrastructure/database/prisma/client.ts` and `src/infrastructure/config/database.config.ts`
+- [X] T009 [P] Add shared enums and value objects (DayOfWeek, ShortDay, WeekStartDay, StorageType) in `src/domain/shared/`
+- [X] T010 [P] Add `Result` helper for domain/application errors in `src/domain/shared/result.ts`
+- [X] T011 Implement DI container skeleton and interfaces in `src/infrastructure/di/container.ts`
+- [X] T012 Setup HTTP server bootstrap and route registry in `src/index.ts` and `src/infrastructure/http/routes/index.ts`
+- [X] T013 Add auth and tenant isolation middleware placeholders in `src/infrastructure/http/middleware/auth.middleware.ts` and `tenant-isolation.middleware.ts`
+- [X] T014 Add global error and validation middleware in `src/infrastructure/http/middleware/error-handler.middleware.ts` and `validation.middleware.ts`
+- [X] T015 Add common DTO primitives (error/pagination) in `src/infrastructure/http/dtos/common.dto.ts`
+- [X] T016 Add test harness setup (Bun test config, database test utils) in `tests/setup.ts`
 
 ## Phase 3: User Story 1 - Create and Manage Weekly Meal Plans (Priority: P1) 🎯 MVP
 
