@@ -4,16 +4,16 @@
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-- [ ] T001 Scaffold Clean Architecture directories in `src/` and `tests/` per `plan.md`
-- [ ] T002 Initialize Bun+TypeScript project config in `package.json` and `tsconfig.json` (strict, ESNext, bundler)
-- [ ] T003 [P] Configure lint/format tooling in `.eslintrc.json`, `.prettierrc`, and add scripts in `package.json`
-- [ ] T004 [P] Add PostgreSQL docker compose and environment template in `docker-compose.yml` and `.env.example`
-- [ ] T005 [P] Add Bun scripts for dev/build/test/lint/type-check in `package.json`
+- [X] T001 [P] Scaffold Clean Architecture directories in `src/` and `tests/` per `plan.md`
+- [X] T002 [P] Initialize Bun+TypeScript project config in `package.json` and `tsconfig.json` (strict, ESNext, bundler)
+- [X] T003 [P] Configure lint/format tooling in `.eslintrc.json`, `.prettierrc`, and add scripts in `package.json`
+- [X] T004 [P] Add PostgreSQL docker compose and environment template in `docker-compose.yml` and `.env.example`
+- [X] T005 [P] Add Bun scripts for dev/build/test/lint/type-check in `package.json`
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-- [ ] T006 Define Prisma schema from `data-model.md` in `prisma/schema.prisma`
-- [ ] T007 Create initial migration and generate Prisma client in `prisma/migrations/`
+- [X] T006 Define Prisma schema from `data-model.md` in `prisma/schema.prisma`
+- [X] T007 Create initial migration and generate Prisma client in `prisma/migrations/`
 - [ ] T008 [P] Add Prisma client wrapper and database config in `src/infrastructure/database/prisma/client.ts` and `src/infrastructure/config/database.config.ts`
 - [ ] T009 [P] Add shared enums and value objects (DayOfWeek, ShortDay, WeekStartDay, StorageType) in `src/domain/shared/`
 - [ ] T010 [P] Add `Result` helper for domain/application errors in `src/domain/shared/result.ts`

@@ -1,0 +1,12 @@
+*
+
+# Required files/folders to include in build context
+!.dockerignore
+!package.json
+!tsconfig.json
+!bun.lock
+!bun.lockb
+!src/
+!prisma/
+!README.md
+!.env.example

@@ -1,0 +1,188 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum WeekStartDay {
+  MONDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum ShortDay {
+  MON
+  TUE
+  WED
+  THU
+  FRI
+  SAT
+  SUN
+}
+
+enum StorageType {
+  FRIDGE
+  PANTRY
+  FROZEN
+  OTHER
+}
+
+model Tenant {
+  id           String         @id @default(uuid())
+  name         String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  users        User[]
+  userSettings UserSettings?
+  meals        Meal[]
+  ingredients  Ingredient[]
+  plannedWeeks PlannedWeek[]
+
+  @@map("tenants")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  nickname      String
+  isTenantAdmin Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  tenantId      String
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdMeals  Meal[]    @relation("MealCreator")
+
+  @@index([tenantId])
+  @@index([email])
+  @@map("users")
+}
+
+model UserSettings {
+  id               String        @id @default(uuid())
+  weekStartDay     WeekStartDay  @default(MONDAY)
+  dailyPreferences Json
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  tenantId         String        @unique
+  tenant           Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+model PlannedWeek {
+  id           String     @id @default(uuid())
+  startingDate DateTime   @db.Date
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  tenantId     String
+  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  dayPlans     DayPlan[]
+
+  @@index([tenantId])
+  @@index([tenantId, startingDate])
+  @@map("planned_weeks")
+}
+
+model DayPlan {
+  id            String      @id @default(uuid())
+  date          DateTime    @db.Date
+  longDay       DayOfWeek
+  shortDay      ShortDay
+  isLeftover    Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  plannedWeekId String
+  plannedWeek   PlannedWeek @relation(fields: [plannedWeekId], references: [id], onDelete: Cascade)
+  lunchMealId   String?
+  lunchMeal     Meal?       @relation("LunchMeals", fields: [lunchMealId], references: [id], onDelete: SetNull)
+  dinnerMealId  String?
+  dinnerMeal    Meal?       @relation("DinnerMeals", fields: [dinnerMealId], references: [id], onDelete: SetNull)
+
+  @@index([plannedWeekId])
+  @@index([date])
+  @@map("day_plans")
+}
+
+model Meal {
+  id           String            @id @default(uuid())
+  mealName     String
+  recipeLink   String?
+  mealImageId  String?
+  isArchived   Boolean           @default(false)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  deletedAt    DateTime?
+  tenantId     String
+  tenant       Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy    String
+  creator      User              @relation("MealCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  qualities    MealQualities?
+  ingredients  MealIngredient[]
+  lunchPlans   DayPlan[]         @relation("LunchMeals")
+  dinnerPlans  DayPlan[]         @relation("DinnerMeals")
+
+  @@index([tenantId])
+  @@index([tenantId, isArchived])
+  @@index([createdBy])
+  @@map("meals")
+}
+
+model MealQualities {
+  id           String   @id @default(uuid())
+  isDinner     Boolean  @default(true)
+  isLunch      Boolean  @default(false)
+  isCreamy     Boolean  @default(false)
+  isAcidic     Boolean  @default(false)
+  greenVeg     Boolean  @default(false)
+  makesLunch   Boolean  @default(false)
+  isEasyToMake Boolean  @default(false)
+  needsPrep    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  mealId       String   @unique
+  meal         Meal     @relation(fields: [mealId], references: [id], onDelete: Cascade)
+
+  @@map("meal_qualities")
+}
+
+model Ingredient {
+  id             String           @id @default(uuid())
+  ingredientName String
+  staple         Boolean          @default(false)
+  storageType    StorageType
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  tenantId       String
+  tenant         Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  meals          MealIngredient[]
+
+  @@unique([tenantId, ingredientName])
+  @@index([tenantId])
+  @@map("ingredients")
+}
+
+model MealIngredient {
+  id           String     @id @default(uuid())
+  createdAt    DateTime   @default(now())
+  mealId       String
+  meal         Meal       @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  ingredientId String
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@unique([mealId, ingredientId])
+  @@index([mealId])
+  @@index([ingredientId])
+  @@map("meal_ingredients")
+}
