@@ -4,7 +4,7 @@ import { Pool } from 'pg';
 
 import { getDatabaseConfig } from '@/infrastructure/config/database.config';
 
-let prisma: PrismaClient | null = null;
+let prismaInstance: PrismaClient | null = null;
 let pool: Pool | null = null;
 
 const createPrismaClient = (): PrismaClient => {
@@ -16,19 +16,17 @@ const createPrismaClient = (): PrismaClient => {
 };
 
 export const getPrismaClient = (): PrismaClient => {
-  if (!prisma) {
-    prisma = createPrismaClient();
+  if (!prismaInstance) {
+    prismaInstance = createPrismaClient();
   }
 
-  return prisma;
+  return prismaInstance;
 };
 
-export const prisma = getPrismaClient();
-
 export const disconnectPrisma = async (): Promise<void> => {
-  if (prisma) {
-    await prisma.$disconnect();
-    prisma = null;
+  if (prismaInstance) {
+    await prismaInstance.$disconnect();
+    prismaInstance = null;
   }
 
   if (pool) {

@@ -31,15 +31,15 @@
 **Independent Test**: Create a planned week aligned to weekStartDay, assign meals to days, verify leftovers populate next-day lunch when `makesLunch=true`, and retrieve eligible meals per day/meal-type.
 
 ### Tests (write first)
-- [ ] T017 [P] [US1] Write e2e contract tests for planned week endpoints in `tests/e2e/planned-week.e2e.spec.ts`
-- [ ] T018 [P] [US1] Write unit tests for PlannedWeek/DayPlan aggregates and leftover rules in `tests/unit/domain/planned-week/planned-week.spec.ts`
-- [ ] T019 [P] [US1] Write unit tests for planned-week use cases (create, assign, get, delete) in `tests/unit/application/planned-week/create-planned-week.usecase.spec.ts`
-- [ ] T020 [P] [US1] Write e2e tests for eligible meals endpoint in `tests/e2e/meal-eligible.e2e.spec.ts`
+- [X] T017 [P] [US1] Write e2e contract tests for planned week endpoints in `tests/e2e/planned-week.e2e.spec.ts`
+- [X] T018 [P] [US1] Write unit tests for PlannedWeek/DayPlan aggregates and leftover rules in `tests/unit/domain/planned-week/planned-week.spec.ts`
+- [X] T019 [P] [US1] Write unit tests for planned-week use cases (create, assign, get, delete) in `tests/unit/application/planned-week/create-planned-week.usecase.spec.ts`
+- [X] T020 [P] [US1] Write e2e tests for eligible meals endpoint in `tests/e2e/meal-eligible.e2e.spec.ts`
 
 ### Implementation
-- [ ] T021 [P] [US1] Implement PlannedWeek aggregate and DayPlan entity with leftover logic in `src/domain/planned-week/`
-- [ ] T022 [P] [US1] Implement planned-week repository interface in `src/domain/planned-week/planned-week.repository.ts`
-- [ ] T023 [P] [US1] Implement planned-week use cases (create week, assign meal, get week, delete week, populate leftovers) in `src/application/planned-week/`
+- [X] T021 [P] [US1] Implement PlannedWeek aggregate and DayPlan entity with leftover logic in `src/domain/planned-week/`
+- [X] T022 [P] [US1] Implement planned-week repository interface in `src/domain/planned-week/planned-week.repository.ts`
+- [X] T023 [P] [US1] Implement planned-week use cases (create week, assign meal, get week, delete week, populate leftovers) in `src/application/planned-week/`
 - [ ] T024 [P] [US1] Implement eligible meals filtering use case (FR-007) in `src/application/meal/get-eligible-meals.usecase.ts`
 - [ ] T025 [P] [US1] Add Prisma planned-week repository in `src/infrastructure/database/repositories/prisma-planned-week.repository.ts`
 - [ ] T026 [P] [US1] Add DTOs and validators for planned weeks/day plans in `src/infrastructure/http/dtos/planned-week.dto.ts`
