@@ -1,23 +1,12 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version Change: 1.0.0 → 1.1.0
-Change Type: MINOR (new principles added)
-Rationale: Added Domain Driven Design principle and Vegan-First Testing principle to expand governance framework
+Version Change: 1.1.0 → 1.1.1
+Change Type: PATCH (amendment documentation corrected)
+Rationale: Amendment record corrected for governance accuracy. Previous amendment (1.0.0→1.1.0, MINOR): Added Domain Driven Design and Vegan-First Testing principles.
 
-Modified Principles: None
-Added Sections:
-  - VI. Domain Driven Design (new core principle)
-  - VII. Vegan-First Testing & Examples (new core principle)
-
-Templates Requiring Updates:
-  ✅ plan-template.md - verified alignment with constitution checks
-  ✅ spec-template.md - verified alignment with testability and domain requirements
-  ✅ tasks-template.md - verified alignment with test-first and modular task structure
-  ⚠️  All example code and tests - MUST use vegan diet examples going forward
-
-Follow-up TODOs:
-  - Review existing examples/tests to align with vegan-first principle (if any exist)
+Modified: SYNC IMPACT REPORT (version and change type)
+Templates: No template changes this amendment.
 -->
 
 # VeganMealAppApi Constitution
