@@ -1,21 +1,21 @@
-import type { IngredientId } from '../../domain/ingredient/ingredient.entity';
+import type { IngredientId, IngredientSnapshot } from '../../domain/ingredient/ingredient.entity';
 import type { IngredientRepository } from '../../domain/ingredient/ingredient.repository';
 
-export type DeleteIngredientRequest = {
+export type GetIngredientRequest = {
   id: IngredientId;
   tenantId: string;
 };
 
-export class DeleteIngredientUseCase {
+export class GetIngredientUseCase {
   constructor(private ingredientRepository: IngredientRepository) {}
 
-  async execute(request: DeleteIngredientRequest): Promise<void> {
+  async execute(request: GetIngredientRequest): Promise<IngredientSnapshot> {
     const ingredient = await this.ingredientRepository.findById(request.id, request.tenantId);
 
     if (!ingredient) {
       throw new Error(`Ingredient with ID ${request.id} not found`);
     }
 
-    await this.ingredientRepository.delete(request.id, request.tenantId);
+    return ingredient.toSnapshot();
   }
 }

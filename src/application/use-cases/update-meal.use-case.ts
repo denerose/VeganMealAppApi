@@ -16,7 +16,7 @@ export class UpdateMealUseCase {
 
   async execute(request: UpdateMealRequest): Promise<MealSnapshot> {
     const meal = await this.mealRepository.findById(request.id, request.tenantId);
-    
+
     if (!meal) {
       throw new Error(`Meal with ID ${request.id} not found`);
     }

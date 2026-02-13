@@ -2,7 +2,7 @@ import { describe, test } from 'bun:test';
 
 /**
  * E2E Contract Tests: Meal CRUD Operations
- * 
+ *
  * These tests describe the expected HTTP behavior for meal management endpoints.
  * They serve as executable documentation of the API contract per OpenAPI spec.
  */

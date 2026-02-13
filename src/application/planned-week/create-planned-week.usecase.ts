@@ -9,7 +9,7 @@ export class CreatePlannedWeekUseCase {
   async execute(request: CreatePlannedWeekRequest): Promise<PlannedWeek> {
     const existingWeek = await this.plannedWeekRepository.findByTenantAndStartDate(
       request.tenantId,
-      request.startingDate,
+      request.startingDate
     );
 
     if (existingWeek) {

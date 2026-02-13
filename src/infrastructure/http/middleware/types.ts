@@ -6,6 +6,4 @@ export type HttpContext = {
   roles?: string[];
 };
 
-export type HttpMiddleware = (
-  context: HttpContext,
-) => Promise<HttpContext> | HttpContext;
+export type HttpMiddleware = (context: HttpContext) => Promise<HttpContext> | HttpContext;

@@ -1,5 +1,10 @@
 import type { MealSnapshot } from '../../domain/meal/meal.entity';
-import type { MealRepository, MealFilters, PaginationOptions, PaginatedResult } from '../../domain/meal/meal.repository';
+import type {
+  MealRepository,
+  MealFilters,
+  PaginationOptions,
+  PaginatedResult,
+} from '../../domain/meal/meal.repository';
 
 export type ListMealsRequest = {
   tenantId: string;

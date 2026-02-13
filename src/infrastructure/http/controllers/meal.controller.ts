@@ -5,6 +5,7 @@ import { createErrorBody } from '@/infrastructure/http/dtos/common.dto';
 import type { RouteContext } from '@/infrastructure/http/routes';
 import type { MealSummaryDto } from '@/infrastructure/http/dtos/planned-week.dto';
 import { CreateMealUseCase } from '@/application/use-cases/create-meal.use-case';
+import { GetMealUseCase } from '@/application/use-cases/get-meal.use-case';
 import { ListMealsUseCase } from '@/application/use-cases/list-meals.use-case';
 import { UpdateMealUseCase } from '@/application/use-cases/update-meal.use-case';
 import { ArchiveMealUseCase } from '@/application/use-cases/archive-meal.use-case';
@@ -23,6 +24,7 @@ export class MealController {
   constructor(
     private readonly getEligibleMealsUseCase: GetEligibleMealsUseCase,
     private readonly getRandomMealUseCase: GetRandomMealUseCase,
+    private readonly getMealUseCase: GetMealUseCase,
     private readonly createMealUseCase: CreateMealUseCase,
     private readonly listMealsUseCase: ListMealsUseCase,
     private readonly updateMealUseCase: UpdateMealUseCase,
@@ -104,6 +106,39 @@ export class MealController {
       }
 
       console.error('Error fetching eligible meals:', error);
+      return new Response(JSON.stringify(createErrorBody('Internal server error')), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  async get(context: RouteContext): Promise<Response> {
+    try {
+      const id = context.params.id ?? undefined;
+      if (!id) {
+        return new Response(JSON.stringify(createErrorBody('Meal ID is required')), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      const tenantId = context.request.headers.get('x-tenant-id') || 'temp-tenant-id';
+
+      const snapshot = await this.getMealUseCase.execute({ id, tenantId });
+
+      return new Response(JSON.stringify(toMealResponseDto(snapshot)), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch (error: unknown) {
+      if (errorMessage(error).includes('not found')) {
+        return new Response(JSON.stringify(createErrorBody(errorMessage(error))), {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      console.error('Error fetching meal:', error);
       return new Response(JSON.stringify(createErrorBody('Internal server error')), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },

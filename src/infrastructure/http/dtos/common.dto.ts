@@ -20,7 +20,7 @@ export type PaginatedResponse<T> = {
 
 export const createErrorBody = (
   message: string,
-  details?: ErrorResponseDto['details'],
+  details?: ErrorResponseDto['details']
 ): { error: ErrorResponseDto } => ({
   error: {
     message,

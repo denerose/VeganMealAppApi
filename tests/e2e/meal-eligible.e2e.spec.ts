@@ -9,5 +9,8 @@ describe('Eligible Meals API (contract)', () => {
 
   test.todo('returns meals matching daily preferences for dinner slots', () => {});
 
-  test.todo('returns empty list when no meals satisfy filters but allows manual assignment', () => {});
+  test.todo(
+    'returns empty list when no meals satisfy filters but allows manual assignment',
+    () => {}
+  );
 });

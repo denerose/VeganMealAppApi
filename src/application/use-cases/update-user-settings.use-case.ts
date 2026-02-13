@@ -32,7 +32,7 @@ export class UpdateUserSettingsUseCase {
       // Create default settings if they don't exist
       const { UserSettings } = await import('@/domain/user/user-settings.entity');
       const { WeekStartDay } = await import('@/domain/shared/week-start-day.enum');
-      
+
       settings = UserSettings.create(tenantId, WeekStartDay.MONDAY);
       settings = await this.userSettingsRepository.create(settings, tenantId);
     }

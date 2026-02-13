@@ -17,7 +17,7 @@ export class DependencyContainer {
   register<T>(
     token: DependencyToken<T>,
     factory: Factory<T>,
-    options: { singleton?: boolean } = {},
+    options: { singleton?: boolean } = {}
   ): void {
     const singleton = options.singleton ?? true;
     this.registrations.set(token, {

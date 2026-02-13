@@ -1,5 +1,10 @@
 import type { IngredientSnapshot } from '../../domain/ingredient/ingredient.entity';
-import type { IngredientRepository, IngredientFilters, PaginationOptions, PaginatedResult } from '../../domain/ingredient/ingredient.repository';
+import type {
+  IngredientRepository,
+  IngredientFilters,
+  PaginationOptions,
+  PaginatedResult,
+} from '../../domain/ingredient/ingredient.repository';
 
 export type ListIngredientsRequest = {
   tenantId: string;

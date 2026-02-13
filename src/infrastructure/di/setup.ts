@@ -23,10 +23,12 @@ import { PopulateLeftoversUseCase } from '@/application/planned-week/populate-le
 import { GetEligibleMealsUseCase } from '@/application/meal/get-eligible-meals.usecase';
 import { GetRandomMealUseCase } from '@/application/meal/get-random-meal.usecase';
 import { CreateMealUseCase } from '@/application/use-cases/create-meal.use-case';
+import { GetMealUseCase } from '@/application/use-cases/get-meal.use-case';
 import { ListMealsUseCase } from '@/application/use-cases/list-meals.use-case';
 import { UpdateMealUseCase } from '@/application/use-cases/update-meal.use-case';
 import { ArchiveMealUseCase } from '@/application/use-cases/archive-meal.use-case';
 import { CreateIngredientUseCase } from '@/application/use-cases/create-ingredient.use-case';
+import { GetIngredientUseCase } from '@/application/use-cases/get-ingredient.use-case';
 import { ListIngredientsUseCase } from '@/application/use-cases/list-ingredients.use-case';
 import { UpdateIngredientUseCase } from '@/application/use-cases/update-ingredient.use-case';
 import { DeleteIngredientUseCase } from '@/application/use-cases/delete-ingredient.use-case';
@@ -65,10 +67,12 @@ export const TOKENS = {
   GetEligibleMealsUseCase: createToken<GetEligibleMealsUseCase>('GetEligibleMealsUseCase'),
   GetRandomMealUseCase: createToken<GetRandomMealUseCase>('GetRandomMealUseCase'),
   CreateMealUseCase: createToken<CreateMealUseCase>('CreateMealUseCase'),
+  GetMealUseCase: createToken<GetMealUseCase>('GetMealUseCase'),
   ListMealsUseCase: createToken<ListMealsUseCase>('ListMealsUseCase'),
   UpdateMealUseCase: createToken<UpdateMealUseCase>('UpdateMealUseCase'),
   ArchiveMealUseCase: createToken<ArchiveMealUseCase>('ArchiveMealUseCase'),
   CreateIngredientUseCase: createToken<CreateIngredientUseCase>('CreateIngredientUseCase'),
+  GetIngredientUseCase: createToken<GetIngredientUseCase>('GetIngredientUseCase'),
   ListIngredientsUseCase: createToken<ListIngredientsUseCase>('ListIngredientsUseCase'),
   UpdateIngredientUseCase: createToken<UpdateIngredientUseCase>('UpdateIngredientUseCase'),
   DeleteIngredientUseCase: createToken<DeleteIngredientUseCase>('DeleteIngredientUseCase'),
@@ -160,6 +164,12 @@ export const registerDependencies = (): void => {
   );
 
   container.register(
+    TOKENS.GetMealUseCase,
+    c => new GetMealUseCase(c.resolve(TOKENS.MealRepository)),
+    { singleton: true }
+  );
+
+  container.register(
     TOKENS.ListMealsUseCase,
     c => new ListMealsUseCase(c.resolve(TOKENS.MealRepository)),
     { singleton: true }
@@ -180,6 +190,12 @@ export const registerDependencies = (): void => {
   container.register(
     TOKENS.CreateIngredientUseCase,
     c => new CreateIngredientUseCase(c.resolve(TOKENS.IngredientRepository)),
+    { singleton: true }
+  );
+
+  container.register(
+    TOKENS.GetIngredientUseCase,
+    c => new GetIngredientUseCase(c.resolve(TOKENS.IngredientRepository)),
     { singleton: true }
   );
 
@@ -266,6 +282,7 @@ export const registerDependencies = (): void => {
       new MealController(
         c.resolve(TOKENS.GetEligibleMealsUseCase),
         c.resolve(TOKENS.GetRandomMealUseCase),
+        c.resolve(TOKENS.GetMealUseCase),
         c.resolve(TOKENS.CreateMealUseCase),
         c.resolve(TOKENS.ListMealsUseCase),
         c.resolve(TOKENS.UpdateMealUseCase),
@@ -278,6 +295,7 @@ export const registerDependencies = (): void => {
     TOKENS.IngredientController,
     c =>
       new IngredientController(
+        c.resolve(TOKENS.GetIngredientUseCase),
         c.resolve(TOKENS.CreateIngredientUseCase),
         c.resolve(TOKENS.ListIngredientsUseCase),
         c.resolve(TOKENS.UpdateIngredientUseCase),
