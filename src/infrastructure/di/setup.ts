@@ -42,6 +42,8 @@ import { AuthenticateUserUseCase } from '@/application/auth/authenticate-user.us
 import { ChangePasswordUseCase } from '@/application/auth/change-password.use-case';
 import { RequestPasswordResetUseCase } from '@/application/auth/request-password-reset.use-case';
 import { ResetPasswordUseCase } from '@/application/auth/reset-password.use-case';
+import { GetUserProfileUseCase } from '@/application/auth/get-user-profile.use-case';
+import { UpdateUserProfileUseCase } from '@/application/auth/update-user-profile.use-case';
 
 // Controllers
 import { PlannedWeekController } from '@/infrastructure/http/controllers/planned-week.controller';
@@ -103,6 +105,8 @@ export const TOKENS = {
     'RequestPasswordResetUseCase'
   ),
   ResetPasswordUseCase: createToken<ResetPasswordUseCase>('ResetPasswordUseCase'),
+  GetUserProfileUseCase: createToken<GetUserProfileUseCase>('GetUserProfileUseCase'),
+  UpdateUserProfileUseCase: createToken<UpdateUserProfileUseCase>('UpdateUserProfileUseCase'),
 
   // Auth Infrastructure
   BcryptPasswordHasher: createToken<BcryptPasswordHasher>('BcryptPasswordHasher'),
@@ -372,6 +376,24 @@ export const registerDependencies = (): void => {
     { singleton: true }
   );
 
+  // T092: Register profile management use cases in DI container
+  container.register(
+    TOKENS.GetUserProfileUseCase,
+    c =>
+      new GetUserProfileUseCase(c.resolve(TOKENS.PrismaClient), c.resolve(TOKENS.UserRepository)),
+    { singleton: true }
+  );
+
+  container.register(
+    TOKENS.UpdateUserProfileUseCase,
+    c =>
+      new UpdateUserProfileUseCase(
+        c.resolve(TOKENS.PrismaClient),
+        c.resolve(TOKENS.UserRepository)
+      ),
+    { singleton: true }
+  );
+
   // Register EmailService
   container.register(TOKENS.EmailService, () => new EmailService(), { singleton: true });
 
@@ -445,7 +467,9 @@ export const registerDependencies = (): void => {
         c.resolve(TOKENS.AuthenticateUserUseCase),
         c.resolve(TOKENS.ChangePasswordUseCase),
         c.resolve(TOKENS.RequestPasswordResetUseCase),
-        c.resolve(TOKENS.ResetPasswordUseCase)
+        c.resolve(TOKENS.ResetPasswordUseCase),
+        c.resolve(TOKENS.GetUserProfileUseCase),
+        c.resolve(TOKENS.UpdateUserProfileUseCase)
       ),
     { singleton: true }
   );

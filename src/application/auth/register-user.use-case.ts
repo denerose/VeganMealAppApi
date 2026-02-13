@@ -26,12 +26,24 @@ export type RegisterUserResponse = {
   };
 };
 
+/**
+ * Use case for registering a new user account.
+ * Creates a new user, tenant, and assigns the user as tenant admin.
+ * Returns JWT token and user information upon successful registration.
+ */
 export class RegisterUserUseCase {
   constructor(
     private prisma: PrismaClient,
     private passwordHasher: BcryptPasswordHasher,
     private jwtGenerator: JWTGenerator
   ) {}
+
+  /**
+   * Registers a new user with email, password, nickname, and tenant name.
+   * @param request - Registration request containing email, password, nickname, and tenantName
+   * @returns Registration response with JWT token and user information
+   * @throws Error if validation fails, email already exists, or tenant creation fails
+   */
 
   async execute(request: RegisterUserRequest): Promise<RegisterUserResponse> {
     // T025-T027: Validate input

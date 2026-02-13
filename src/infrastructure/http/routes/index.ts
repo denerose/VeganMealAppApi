@@ -164,6 +164,21 @@ export const registerRoutes = (router: AppRouter, controllers: RouteControllers)
     );
   }
 
+  // User Profile (protected endpoints)
+  if (controllers.auth) {
+    const auth = controllers.auth;
+    // T090: Add GET /auth/profile route (protected endpoint)
+    router.get(
+      `${prefix}/auth/profile`,
+      withAuth(ctx => auth.getProfile(ctx))
+    );
+    // T091: Add PATCH /auth/profile route (protected endpoint)
+    router.patch(
+      `${prefix}/auth/profile`,
+      withAuth(ctx => auth.updateProfile(ctx))
+    );
+  }
+
   // Planned Weeks (protected endpoints)
   router.get(
     `${prefix}/planned-weeks`,

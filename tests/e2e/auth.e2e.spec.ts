@@ -934,3 +934,335 @@ describe('POST /auth/password/reset', () => {
     expect(data.error.message).toContain('Password must be at least 8 characters long');
   });
 });
+
+describe('GET /auth/profile', () => {
+  test.skipIf(!serverAvailable)('should retrieve user profile successfully', async () => {
+    // Register and login to get a token
+    const registerBody = {
+      email: 'profile@example.com',
+      password: 'password123',
+      nickname: 'Profile User',
+      tenantName: 'Profile Tenant',
+    };
+
+    await fetch(`${API_BASE_URL}/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(registerBody),
+    });
+
+    const loginBody = {
+      email: 'profile@example.com',
+      password: 'password123',
+    };
+
+    const loginResponse = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(loginBody),
+    });
+
+    expect(loginResponse.status).toBe(200);
+    const loginData = (await loginResponse.json()) as AuthResponse;
+    const token = loginData.token;
+
+    // Get profile
+    const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    expect(response.status).toBe(200);
+
+    const data = (await response.json()) as {
+      id: string;
+      email: string;
+      nickname: string;
+      tenantId: string;
+      tenantName: string;
+      isTenantAdmin: boolean;
+      createdAt: string;
+      updatedAt: string;
+    };
+
+    expect(data.id).toBeDefined();
+    expect(data.email).toBe('profile@example.com');
+    expect(data.nickname).toBe('Profile User');
+    expect(data.tenantId).toBeDefined();
+    expect(data.tenantName).toBe('Profile Tenant');
+    expect(data.isTenantAdmin).toBe(true);
+    expect(data.createdAt).toBeDefined();
+    expect(data.updatedAt).toBeDefined();
+  });
+
+  test.skipIf(!serverAvailable)('should return 401 without authentication token', async () => {
+    const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    expect(response.status).toBe(401);
+
+    const data = (await response.json()) as { error: { message: string } };
+    expect(data.error).toBeDefined();
+    expect(data.error.message).toBe('Authentication required');
+  });
+
+  test.skipIf(!serverAvailable)('should return 401 with invalid token', async () => {
+    const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer invalid-token-123',
+      },
+    });
+
+    expect(response.status).toBe(401);
+  });
+});
+
+describe('PATCH /auth/profile', () => {
+  test.skipIf(!serverAvailable)('should update user nickname successfully', async () => {
+    // Register and login to get a token
+    const registerBody = {
+      email: 'updateprofile@example.com',
+      password: 'password123',
+      nickname: 'Original Nickname',
+      tenantName: 'Update Profile Tenant',
+    };
+
+    await fetch(`${API_BASE_URL}/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(registerBody),
+    });
+
+    const loginBody = {
+      email: 'updateprofile@example.com',
+      password: 'password123',
+    };
+
+    const loginResponse = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(loginBody),
+    });
+
+    expect(loginResponse.status).toBe(200);
+    const loginData = (await loginResponse.json()) as AuthResponse;
+    const token = loginData.token;
+
+    // Update profile
+    const updateBody = {
+      nickname: 'Updated Nickname',
+    };
+
+    const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(updateBody),
+    });
+
+    expect(response.status).toBe(200);
+
+    const data = (await response.json()) as {
+      id: string;
+      email: string;
+      nickname: string;
+      tenantId: string;
+      tenantName: string;
+      isTenantAdmin: boolean;
+      createdAt: string;
+      updatedAt: string;
+    };
+
+    expect(data.nickname).toBe('Updated Nickname');
+    expect(data.email).toBe('updateprofile@example.com'); // Email unchanged
+  });
+
+  test.skipIf(!serverAvailable)('should return 400 for empty nickname', async () => {
+    // Register and login to get a token
+    const registerBody = {
+      email: 'updateprofile2@example.com',
+      password: 'password123',
+      nickname: 'Test User',
+      tenantName: 'Test Tenant',
+    };
+
+    await fetch(`${API_BASE_URL}/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(registerBody),
+    });
+
+    const loginResponse = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: 'updateprofile2@example.com',
+        password: 'password123',
+      }),
+    });
+
+    const loginData = (await loginResponse.json()) as AuthResponse;
+    const token = loginData.token;
+
+    const updateBody = {
+      nickname: '',
+    };
+
+    const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(updateBody),
+    });
+
+    expect(response.status).toBe(400);
+
+    const data = (await response.json()) as { error: { message: string } };
+    expect(data.error).toBeDefined();
+    expect(data.error.message).toContain('Nickname is required');
+  });
+
+  test.skipIf(!serverAvailable)('should return 400 for nickname too long', async () => {
+    // Register and login to get a token
+    const registerBody = {
+      email: 'updateprofile3@example.com',
+      password: 'password123',
+      nickname: 'Test User',
+      tenantName: 'Test Tenant',
+    };
+
+    await fetch(`${API_BASE_URL}/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(registerBody),
+    });
+
+    const loginResponse = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: 'updateprofile3@example.com',
+        password: 'password123',
+      }),
+    });
+
+    const loginData = (await loginResponse.json()) as AuthResponse;
+    const token = loginData.token;
+
+    const updateBody = {
+      nickname: 'a'.repeat(51),
+    };
+
+    const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(updateBody),
+    });
+
+    expect(response.status).toBe(400);
+
+    const data = (await response.json()) as { error: { message: string } };
+    expect(data.error).toBeDefined();
+    expect(data.error.message).toContain('Nickname must be 50 characters or less');
+  });
+
+  test.skipIf(!serverAvailable)('should return 400 for email update attempt (T094)', async () => {
+    // Register and login to get a token
+    const registerBody = {
+      email: 'updateprofile4@example.com',
+      password: 'password123',
+      nickname: 'Test User',
+      tenantName: 'Test Tenant',
+    };
+
+    await fetch(`${API_BASE_URL}/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(registerBody),
+    });
+
+    const loginResponse = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: 'updateprofile4@example.com',
+        password: 'password123',
+      }),
+    });
+
+    const loginData = (await loginResponse.json()) as AuthResponse;
+    const token = loginData.token;
+
+    const updateBody = {
+      nickname: 'Updated Nickname',
+      email: 'newemail@example.com', // Attempt to change email
+    };
+
+    const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(updateBody),
+    });
+
+    expect(response.status).toBe(400);
+
+    const data = (await response.json()) as { error: { message: string } };
+    expect(data.error).toBeDefined();
+    expect(data.error.message).toBe('Email cannot be changed');
+  });
+
+  test.skipIf(!serverAvailable)('should return 401 without authentication token', async () => {
+    const updateBody = {
+      nickname: 'Updated Nickname',
+    };
+
+    const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updateBody),
+    });
+
+    expect(response.status).toBe(401);
+  });
+});

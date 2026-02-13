@@ -3,6 +3,8 @@ import type { AuthenticateUserUseCase } from '@/application/auth/authenticate-us
 import type { ChangePasswordUseCase } from '@/application/auth/change-password.use-case';
 import type { RequestPasswordResetUseCase } from '@/application/auth/request-password-reset.use-case';
 import type { ResetPasswordUseCase } from '@/application/auth/reset-password.use-case';
+import type { GetUserProfileUseCase } from '@/application/auth/get-user-profile.use-case';
+import type { UpdateUserProfileUseCase } from '@/application/auth/update-user-profile.use-case';
 import type {
   RegisterRequest,
   LoginRequest,
@@ -10,8 +12,10 @@ import type {
   PasswordResetRequest,
   ResetPasswordRequest,
   AuthResponse,
+  UpdateProfileRequest,
+  UserProfile,
 } from '../dtos/auth.dto';
-import { toAuthResponse } from '../dtos/auth.dto';
+import { toAuthResponse, toUserProfile } from '../dtos/auth.dto';
 import { createErrorBody } from '../dtos/common.dto';
 import type { RouteContext } from '../routes';
 
@@ -21,7 +25,9 @@ export class AuthController {
     private authenticateUserUseCase: AuthenticateUserUseCase,
     private changePasswordUseCase: ChangePasswordUseCase,
     private requestPasswordResetUseCase: RequestPasswordResetUseCase,
-    private resetPasswordUseCase: ResetPasswordUseCase
+    private resetPasswordUseCase: ResetPasswordUseCase,
+    private getUserProfileUseCase: GetUserProfileUseCase,
+    private updateUserProfileUseCase: UpdateUserProfileUseCase
   ) {}
 
   async register(context: RouteContext): Promise<Response> {
@@ -296,6 +302,135 @@ export class AuthController {
           });
         }
 
+        if (
+          error.message.includes('must be') ||
+          error.message.includes('Invalid') ||
+          error.message.includes('Missing') ||
+          error.message.includes('required')
+        ) {
+          return new Response(JSON.stringify(createErrorBody(error.message)), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+      }
+
+      return new Response(JSON.stringify(createErrorBody('Internal server error')), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  /**
+   * T088: Get user profile method.
+   * Retrieves the authenticated user's profile information.
+   */
+  async getProfile(context: RouteContext): Promise<Response> {
+    try {
+      if (!context.userId || !context.tenantId) {
+        return new Response(JSON.stringify(createErrorBody('Authentication required')), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      const result = await this.getUserProfileUseCase.execute({
+        userId: context.userId,
+        tenantId: context.tenantId,
+      });
+
+      const profile: UserProfile = toUserProfile(result);
+
+      return new Response(JSON.stringify(profile), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch (error) {
+      console.error('Error getting user profile:', error);
+
+      if (error instanceof Error) {
+        if (error.message === 'User not found' || error.message === 'Tenant not found') {
+          return new Response(JSON.stringify(createErrorBody(error.message)), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+      }
+
+      return new Response(JSON.stringify(createErrorBody('Internal server error')), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  /**
+   * T089: Update user profile method.
+   * Updates the authenticated user's profile (nickname only, email is immutable).
+   * T094: Error handling for email update attempts (400 Bad Request).
+   */
+  async updateProfile(context: RouteContext): Promise<Response> {
+    try {
+      if (!context.userId || !context.tenantId) {
+        return new Response(JSON.stringify(createErrorBody('Authentication required')), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      const body = (await context.request.json()) as unknown;
+      const updateProfileRequest = body as UpdateProfileRequest;
+
+      // Basic validation
+      if (!updateProfileRequest.nickname) {
+        return new Response(JSON.stringify(createErrorBody('Missing required field: nickname')), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      // T094: Error handling for email update attempts (400 Bad Request)
+      if (updateProfileRequest.email !== undefined) {
+        return new Response(JSON.stringify(createErrorBody('Email cannot be changed')), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      const result = await this.updateUserProfileUseCase.execute({
+        userId: context.userId,
+        tenantId: context.tenantId,
+        nickname: updateProfileRequest.nickname,
+        email: updateProfileRequest.email,
+      });
+
+      const profile: UserProfile = toUserProfile(result);
+
+      return new Response(JSON.stringify(profile), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch (error) {
+      console.error('Error updating user profile:', error);
+
+      if (error instanceof Error) {
+        // T094: Error handling for email update attempts (400 Bad Request)
+        if (error.message === 'Email cannot be changed') {
+          return new Response(JSON.stringify(createErrorBody(error.message)), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+
+        if (error.message === 'User not found' || error.message === 'Tenant not found') {
+          return new Response(JSON.stringify(createErrorBody(error.message)), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+
+        // Validation errors
         if (
           error.message.includes('must be') ||
           error.message.includes('Invalid') ||

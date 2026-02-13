@@ -1,5 +1,7 @@
 import type { RegisterUserResponse } from '@/application/auth/register-user.use-case';
 import type { AuthenticateUserResponse } from '@/application/auth/authenticate-user.use-case';
+import type { GetUserProfileResponse } from '@/application/auth/get-user-profile.use-case';
+import type { UpdateUserProfileResponse } from '@/application/auth/update-user-profile.use-case';
 
 export type RegisterRequest = {
   email: string;
@@ -55,4 +57,34 @@ export const toAuthResponse = (
     createdAt: response.user.createdAt.toISOString(),
     updatedAt: response.user.updatedAt.toISOString(),
   },
+});
+
+// T093: Profile DTOs
+export type UserProfile = {
+  id: string;
+  email: string;
+  nickname: string;
+  tenantId: string;
+  tenantName: string;
+  isTenantAdmin: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type UpdateProfileRequest = {
+  nickname: string;
+  email?: string; // Optional, but if provided, should be rejected (T087: email immutability)
+};
+
+export const toUserProfile = (
+  response: GetUserProfileResponse | UpdateUserProfileResponse
+): UserProfile => ({
+  id: response.id,
+  email: response.email,
+  nickname: response.nickname,
+  tenantId: response.tenantId,
+  tenantName: response.tenantName,
+  isTenantAdmin: response.isTenantAdmin,
+  createdAt: response.createdAt.toISOString(),
+  updatedAt: response.updatedAt.toISOString(),
 });

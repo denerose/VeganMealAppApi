@@ -17,6 +17,10 @@ export type ValidatedToken = {
   exp: number;
 };
 
+/**
+ * Service for validating JWT authentication tokens.
+ * Verifies token signature, expiration, and required claims (userId, tenantId, email).
+ */
 export class JWTValidator {
   private readonly secret: string;
 

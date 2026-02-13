@@ -173,23 +173,23 @@
 
 ### Tests for User Story 4
 
-- [ ] T081 [P] [US4] Create unit test for GetUserProfileUseCase in tests/unit/application/auth/get-user-profile.use-case.spec.ts
-- [ ] T082 [P] [US4] Create unit test for UpdateUserProfileUseCase in tests/unit/application/auth/update-user-profile.use-case.spec.ts
-- [ ] T083 [P] [US4] Create e2e test for GET /auth/profile endpoint in tests/e2e/auth.e2e.spec.ts
-- [ ] T084 [P] [US4] Create e2e test for PATCH /auth/profile endpoint in tests/e2e/auth.e2e.spec.ts
+- [X] T081 [P] [US4] Create unit test for GetUserProfileUseCase in tests/unit/application/auth/get-user-profile.use-case.spec.ts
+- [X] T082 [P] [US4] Create unit test for UpdateUserProfileUseCase in tests/unit/application/auth/update-user-profile.use-case.spec.ts
+- [X] T083 [P] [US4] Create e2e test for GET /auth/profile endpoint in tests/e2e/auth.e2e.spec.ts
+- [X] T084 [P] [US4] Create e2e test for PATCH /auth/profile endpoint in tests/e2e/auth.e2e.spec.ts
 
 ### Implementation for User Story 4
 
-- [ ] T085 [P] [US4] Create GetUserProfileUseCase in src/application/auth/get-user-profile.use-case.ts to retrieve user profile
-- [ ] T086 [P] [US4] Create UpdateUserProfileUseCase in src/application/auth/update-user-profile.use-case.ts for nickname updates only
-- [ ] T087 [US4] Implement email immutability check in UpdateUserProfileUseCase (prevent email changes per FR-027)
-- [ ] T088 [US4] Add getProfile method to AuthController in src/infrastructure/http/controllers/auth.controller.ts
-- [ ] T089 [US4] Add updateProfile method to AuthController in src/infrastructure/http/controllers/auth.controller.ts
-- [ ] T090 [US4] Add GET /auth/profile route in src/infrastructure/http/routes/index.ts (protected endpoint)
-- [ ] T091 [US4] Add PATCH /auth/profile route in src/infrastructure/http/routes/index.ts (protected endpoint)
-- [ ] T092 [US4] Register profile management use cases in DI container in src/infrastructure/di/setup.ts
-- [ ] T093 [US4] Add profile DTOs in src/infrastructure/http/dtos/auth.dto.ts (UserProfile, UpdateProfileRequest)
-- [ ] T094 [US4] Add error handling for email update attempts (400 Bad Request) in AuthController
+- [X] T085 [P] [US4] Create GetUserProfileUseCase in src/application/auth/get-user-profile.use-case.ts to retrieve user profile
+- [X] T086 [P] [US4] Create UpdateUserProfileUseCase in src/application/auth/update-user-profile.use-case.ts for nickname updates only
+- [X] T087 [US4] Implement email immutability check in UpdateUserProfileUseCase (prevent email changes per FR-027)
+- [X] T088 [US4] Add getProfile method to AuthController in src/infrastructure/http/controllers/auth.controller.ts
+- [X] T089 [US4] Add updateProfile method to AuthController in src/infrastructure/http/controllers/auth.controller.ts
+- [X] T090 [US4] Add GET /auth/profile route in src/infrastructure/http/routes/index.ts (protected endpoint)
+- [X] T091 [US4] Add PATCH /auth/profile route in src/infrastructure/http/routes/index.ts (protected endpoint)
+- [X] T092 [US4] Register profile management use cases in DI container in src/infrastructure/di/setup.ts
+- [X] T093 [US4] Add profile DTOs in src/infrastructure/http/dtos/auth.dto.ts (UserProfile, UpdateProfileRequest)
+- [X] T094 [US4] Add error handling for email update attempts (400 Bad Request) in AuthController
 
 **Checkpoint**: At this point, all user stories should be independently functional. Users can register, login, manage passwords, and view/update profiles.
 
@@ -202,13 +202,13 @@
 - [ ] T095 [P] Add authentication event logging (successful logins, failed attempts, password changes) in src/infrastructure/auth/logging/auth-event-logger.ts
 - [ ] T096 [P] Implement input sanitization for all authentication endpoints in src/infrastructure/http/middleware/validation.middleware.ts
 - [ ] T097 [P] Add comprehensive error handling for authentication edge cases (concurrent logins, malformed tokens, etc.)
-- [ ] T098 [P] Update README.md with authentication endpoints documentation
+- [X] T098 [P] Update README.md with authentication endpoints documentation
 - [ ] T099 [P] Add authentication examples to quickstart.md validation
-- [ ] T100 [P] Run code quality checks (bun run check) and fix any linting/formatting issues
+- [X] T100 [P] Run code quality checks (bun run check) and fix any linting/formatting issues
 - [ ] T101 [P] Add unit test coverage for authentication domain entities in tests/unit/domain/auth/
 - [ ] T102 [P] Add integration tests for email service mocking in tests/integration/infrastructure/auth/
-- [ ] T103 [P] Verify all acceptance scenarios from spec.md are covered by tests
-- [ ] T104 [P] Add JSDoc comments to all authentication use cases and services
+- [X] T103 [P] Verify all acceptance scenarios from spec.md are covered by tests
+- [X] T104 [P] Add JSDoc comments to all authentication use cases and services
 - [ ] T105 [P] Create cleanup job for expired password reset tokens (optional scheduled task)
 - [ ] T106 [P] Add performance/load testing for authentication endpoints to validate SC-005 (1000 concurrent requests) in tests/performance/auth-load.spec.ts
 
