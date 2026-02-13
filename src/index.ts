@@ -11,6 +11,7 @@ const router = createHttpRouter();
 
 // Register application routes
 registerRoutes(router, {
+  auth: container.resolve(TOKENS.AuthController),
   plannedWeek: container.resolve(TOKENS.PlannedWeekController),
   dayPlan: container.resolve(TOKENS.DayPlanController),
   meal: container.resolve(TOKENS.MealController),

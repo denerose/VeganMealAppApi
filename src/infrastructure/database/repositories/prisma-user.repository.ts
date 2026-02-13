@@ -56,6 +56,40 @@ export class PrismaUserRepository implements UserRepository {
     return user?.isTenantAdmin ?? false;
   }
 
+  async findByEmailWithPassword(
+    email: string
+  ): Promise<{ user: User; passwordHash: string | null } | null> {
+    const dbUser = await this.prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        nickname: true,
+        passwordHash: true,
+        isTenantAdmin: true,
+        tenantId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!dbUser) {
+      return null;
+    }
+
+    return {
+      user: this.mapToUser(dbUser),
+      passwordHash: dbUser.passwordHash,
+    };
+  }
+
+  async updatePasswordHash(userId: UserId, passwordHash: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+  }
+
   private mapToUser(dbUser: PrismaUser): User {
     return {
       id: dbUser.id,

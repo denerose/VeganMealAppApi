@@ -18,4 +18,20 @@ export interface UserRepository {
   findAdminsByTenant(tenantId: string): Promise<User[]>;
 
   isUserAdmin(userId: UserId, tenantId: string): Promise<boolean>;
+
+  /**
+   * Finds a user by email including password hash for authentication.
+   * @param email - Email address to lookup
+   * @returns User with password hash, or null if not found
+   */
+  findByEmailWithPassword(
+    email: string
+  ): Promise<{ user: User; passwordHash: string | null } | null>;
+
+  /**
+   * Updates a user's password hash.
+   * @param userId - User ID to update
+   * @param passwordHash - New password hash (bcrypt)
+   */
+  updatePasswordHash(userId: UserId, passwordHash: string): Promise<void>;
 }

@@ -14,12 +14,15 @@
 - Q: How long should password reset tokens remain valid before expiring? → A: 1 hour
 - Q: What rate limits should be enforced on authentication endpoints (login, password reset requests)? → A: 3 attempts per 10 minutes per IP address
 - Q: What are the minimum and maximum length requirements for user nicknames? → A: Minimum 1 character, maximum 50 characters
+- Q: When password reset email delivery fails (SMTP down, invalid email, network timeout), what should happen? → A: Log error, return generic success message, don't create reset token
+- Q: When a user logs in multiple times (different devices/browsers), how should the system handle multiple valid tokens? → A: Allow multiple valid tokens simultaneously (each login issues new token)
+- Q: When a user's tenant is deleted while they have a valid authentication token, what should happen to their authenticated requests? → A: Reject requests with 403 Forbidden, token becomes invalid (tenant no longer exists)
 
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Register New Account (Priority: P1)
 
-New users need to create an account to access the meal planning system. During registration, users provide their email, password, nickname, and either optionally join an existing tenant (household/organization) or automatically become the admin of a new tenant. The system validates their information, creates their account, and provides them with authentication credentials.
+New users need to create an account to access the meal planning system. During registration, users provide their email, password, nickname, and tenant name. The system creates a new tenant and assigns the registering user as tenant admin. (Note: Joining existing tenants via invitation is out of scope per Out of Scope section.) The system validates their information, creates their account, and provides them with authentication credentials.
 
 **Why this priority**: Registration is the entry point for all new users. Without it, users cannot access the system. This must work before any authenticated features can be used.
 
@@ -90,12 +93,12 @@ Users need to view their account information and update their profile details su
 ### Edge Cases
 
 - What happens when a user attempts to register with an email that exists but belongs to a deleted/archived account?
-- How does the system handle concurrent login attempts from the same user?
+- ~~How does the system handle concurrent login attempts from the same user?~~ **RESOLVED**: Multiple concurrent login sessions are allowed. Each login issues a new token, and previous tokens remain valid until expiration (24 hours). Token invalidation on logout is out of scope for MVP.
 - What happens when a user requests password reset multiple times in quick succession?
 - How does the system handle authentication token expiration during an active session?
-- What happens when a user's tenant is deleted while they are authenticated?
+- ~~What happens when a user's tenant is deleted while they are authenticated?~~ **RESOLVED**: System rejects requests with 403 Forbidden. Token becomes invalid when tenant no longer exists. Middleware validates tenant existence during authentication.
 - How does the system handle registration attempts with extremely long email addresses or nicknames?
-- What happens when password reset email delivery fails?
+- ~~What happens when password reset email delivery fails?~~ **RESOLVED**: If email delivery fails, system logs error, returns generic success message (prevents user enumeration), and does not create reset token
 - How does the system handle authentication attempts with malformed tokens?
 
 ## Requirements *(mandatory)*
@@ -122,15 +125,15 @@ Users need to view their account information and update their profile details su
 - **FR-013**: System MUST reject authentication attempts with invalid credentials
 - **FR-014**: System MUST not reveal whether an email exists when authentication fails (security best practice)
 - **FR-015**: System MUST include user ID and tenant ID in authentication tokens
-- **FR-016**: System MUST support token expiration (24 hours) and refresh mechanisms
-- **FR-017**: System MUST invalidate tokens when users log out (if token blacklisting is implemented)
+- **FR-016**: System MUST support token expiration (24 hours). Token refresh mechanisms are out of scope for MVP and will be implemented in a future iteration.
+- **FR-017**: Token invalidation on logout is out of scope for MVP. Tokens expire naturally after 24 hours. Token blacklisting/logout functionality will be implemented in a future iteration. Multiple concurrent login sessions are allowed (each login issues a new token, previous tokens remain valid until expiration).
 
 #### Password Management
 
 - **FR-018**: System MUST allow authenticated users to change their password
 - **FR-019**: System MUST require current password verification for password changes
 - **FR-020**: System MUST allow users to request password reset via email
-- **FR-021**: System MUST send password reset emails with secure, time-limited reset tokens
+- **FR-021**: System MUST send password reset emails with secure, time-limited reset tokens. If email delivery fails, the system MUST log the error, return a generic success message (to prevent user enumeration), and MUST NOT create a reset token
 - **FR-022**: System MUST validate reset tokens before allowing password reset
 - **FR-023**: System MUST expire reset tokens after 1 hour
 - **FR-024**: System MUST enforce password security requirements when resetting passwords: minimum 8 characters, at least one letter and one number
@@ -146,6 +149,7 @@ Users need to view their account information and update their profile details su
 
 - **FR-029**: System MUST ensure authenticated users can only access data belonging to their tenant
 - **FR-030**: System MUST include tenant ID in authentication context for all authenticated requests
+- **FR-034**: System MUST reject authenticated requests with 403 Forbidden when the user's tenant no longer exists (tenant deleted). Token becomes invalid in this case.
 - **FR-031**: System MUST log authentication events (successful logins, failed attempts, password changes)
 - **FR-032**: System MUST protect against common attacks (brute force, timing attacks, SQL injection) by enforcing rate limits of 3 attempts per 10 minutes per IP address on authentication endpoints
 - **FR-033**: System MUST validate and sanitize all user inputs during registration and authentication

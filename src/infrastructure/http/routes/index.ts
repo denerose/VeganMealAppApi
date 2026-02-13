@@ -1,9 +1,14 @@
+import type { AuthController } from '@/infrastructure/http/controllers/auth.controller';
 import type { DayPlanController } from '@/infrastructure/http/controllers/day-plan.controller';
 import type { IngredientController } from '@/infrastructure/http/controllers/ingredient.controller';
 import type { MealController } from '@/infrastructure/http/controllers/meal.controller';
 import type { PlannedWeekController } from '@/infrastructure/http/controllers/planned-week.controller';
 import type { UserSettingsController } from '@/infrastructure/http/controllers/user-settings.controller';
 import { createErrorBody } from '@/infrastructure/http/dtos/common.dto';
+import { authMiddleware } from '@/infrastructure/http/middleware/auth.middleware';
+import { tenantIsolationMiddleware } from '@/infrastructure/http/middleware/tenant-isolation.middleware';
+import { createRateLimitMiddleware } from '@/infrastructure/http/middleware/rate-limit.middleware';
+import { composeMiddleware } from '@/infrastructure/http/middleware/compose.middleware';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -11,6 +16,8 @@ export type RouteContext = {
   request: Request;
   url: URL;
   params: Record<string, string>;
+  userId?: string;
+  tenantId?: string;
 };
 
 export type RouteHandler = (context: RouteContext) => Promise<Response> | Response;
@@ -113,6 +120,7 @@ export const createHttpRouter = (): AppRouter => {
 };
 
 export type RouteControllers = {
+  auth?: AuthController;
   plannedWeek: PlannedWeekController;
   dayPlan: DayPlanController;
   meal?: MealController;
@@ -123,46 +131,137 @@ export type RouteControllers = {
 export const registerRoutes = (router: AppRouter, controllers: RouteControllers): void => {
   const prefix = API_PREFIX;
 
-  // Planned Weeks
-  router.get(`${prefix}/planned-weeks`, ctx => controllers.plannedWeek.list(ctx));
-  router.post(`${prefix}/planned-weeks`, ctx => controllers.plannedWeek.create(ctx));
-  router.get(`${prefix}/planned-weeks/:weekId`, ctx => controllers.plannedWeek.getById(ctx));
-  router.delete(`${prefix}/planned-weeks/:weekId`, ctx => controllers.plannedWeek.delete(ctx));
+  // Authentication (public endpoints)
+  if (controllers.auth) {
+    const auth = controllers.auth;
+    router.post(`${prefix}/auth/register`, ctx => auth.register(ctx));
+    // T050: Add POST /auth/login route with rate limiting middleware
+    router.post(
+      `${prefix}/auth/login`,
+      composeMiddleware(createRateLimitMiddleware('login'))(ctx => auth.login(ctx))
+    );
+    // T075: Add POST /auth/password/reset/request route with rate limiting middleware
+    router.post(
+      `${prefix}/auth/password/reset/request`,
+      composeMiddleware(createRateLimitMiddleware('passwordReset'))(ctx =>
+        auth.requestPasswordReset(ctx)
+      )
+    );
+    // T076: Add POST /auth/password/reset route
+    router.post(`${prefix}/auth/password/reset`, ctx => auth.resetPassword(ctx));
+  }
 
-  // Day Plans
-  router.get(`${prefix}/day-plans/:dayPlanId`, ctx => controllers.dayPlan.get(ctx));
-  router.patch(`${prefix}/day-plans/:dayPlanId`, ctx => controllers.dayPlan.update(ctx));
+  // Password Management (protected endpoints)
+  if (controllers.auth) {
+    const auth = controllers.auth;
+    // T074: Add POST /auth/password/change route (protected endpoint)
+    router.post(
+      `${prefix}/auth/password/change`,
+      withAuth(ctx => auth.changePassword(ctx))
+    );
+  }
 
-  // Meals
+  // Planned Weeks (protected endpoints)
+  const withAuth = composeMiddleware(authMiddleware, tenantIsolationMiddleware);
+  router.get(
+    `${prefix}/planned-weeks`,
+    withAuth(ctx => controllers.plannedWeek.list(ctx))
+  );
+  router.post(
+    `${prefix}/planned-weeks`,
+    withAuth(ctx => controllers.plannedWeek.create(ctx))
+  );
+  router.get(
+    `${prefix}/planned-weeks/:weekId`,
+    withAuth(ctx => controllers.plannedWeek.getById(ctx))
+  );
+  router.delete(
+    `${prefix}/planned-weeks/:weekId`,
+    withAuth(ctx => controllers.plannedWeek.delete(ctx))
+  );
+
+  // Day Plans (protected endpoints)
+  router.get(
+    `${prefix}/day-plans/:dayPlanId`,
+    withAuth(ctx => controllers.dayPlan.get(ctx))
+  );
+  router.patch(
+    `${prefix}/day-plans/:dayPlanId`,
+    withAuth(ctx => controllers.dayPlan.update(ctx))
+  );
+
+  // Meals (protected endpoints)
   if (controllers.meal) {
     const meal = controllers.meal;
-    router.get(`${prefix}/meals`, (ctx): Promise<Response> => meal.list(ctx));
-    router.post(`${prefix}/meals`, (ctx): Promise<Response> => meal.create(ctx));
-    router.get(`${prefix}/meals/eligible`, (ctx): Promise<Response> => meal.getEligible(ctx));
-    router.get(`${prefix}/meals/random`, (ctx): Promise<Response> => meal.getRandom(ctx));
+    router.get(
+      `${prefix}/meals`,
+      withAuth((ctx): Promise<Response> => meal.list(ctx))
+    );
+    router.post(
+      `${prefix}/meals`,
+      withAuth((ctx): Promise<Response> => meal.create(ctx))
+    );
+    router.get(
+      `${prefix}/meals/eligible`,
+      withAuth((ctx): Promise<Response> => meal.getEligible(ctx))
+    );
+    router.get(
+      `${prefix}/meals/random`,
+      withAuth((ctx): Promise<Response> => meal.getRandom(ctx))
+    );
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call -- meal controller methods return Promise<Response>
-    router.get(`${prefix}/meals/:id`, (ctx: RouteContext): Promise<Response> => meal.get(ctx));
+    router.get(
+      `${prefix}/meals/:id`,
+      withAuth((ctx: RouteContext): Promise<Response> => meal.get(ctx))
+    );
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call -- meal controller methods return Promise<Response>
-    router.put(`${prefix}/meals/:id`, (ctx: RouteContext): Promise<Response> => meal.update(ctx));
-    router.delete(`${prefix}/meals/:id`, (ctx): Promise<Response> => meal.archive(ctx));
+    router.put(
+      `${prefix}/meals/:id`,
+      withAuth((ctx: RouteContext): Promise<Response> => meal.update(ctx))
+    );
+    router.delete(
+      `${prefix}/meals/:id`,
+      withAuth((ctx): Promise<Response> => meal.archive(ctx))
+    );
   }
 
-  // Ingredients
+  // Ingredients (protected endpoints)
   if (controllers.ingredient) {
     const ingredient = controllers.ingredient;
-    router.get(`${prefix}/ingredients`, (ctx): Promise<Response> => ingredient.list(ctx));
-    router.post(`${prefix}/ingredients`, (ctx): Promise<Response> => ingredient.create(ctx));
+    router.get(
+      `${prefix}/ingredients`,
+      withAuth((ctx): Promise<Response> => ingredient.list(ctx))
+    );
+    router.post(
+      `${prefix}/ingredients`,
+      withAuth((ctx): Promise<Response> => ingredient.create(ctx))
+    );
     /* eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call */
-    router.get(`${prefix}/ingredients/:id`, (ctx): Promise<Response> => ingredient.get(ctx));
+    router.get(
+      `${prefix}/ingredients/:id`,
+      withAuth((ctx): Promise<Response> => ingredient.get(ctx))
+    );
     /* eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call */
-    router.put(`${prefix}/ingredients/:id`, (ctx): Promise<Response> => ingredient.update(ctx));
-    router.delete(`${prefix}/ingredients/:id`, (ctx): Promise<Response> => ingredient.delete(ctx));
+    router.put(
+      `${prefix}/ingredients/:id`,
+      withAuth((ctx): Promise<Response> => ingredient.update(ctx))
+    );
+    router.delete(
+      `${prefix}/ingredients/:id`,
+      withAuth((ctx): Promise<Response> => ingredient.delete(ctx))
+    );
   }
 
-  // User Settings
+  // User Settings (protected endpoints)
   if (controllers.userSettings) {
     const userSettings = controllers.userSettings;
-    router.get(`${prefix}/user-settings`, ctx => userSettings.getUserSettings(ctx));
-    router.put(`${prefix}/user-settings`, ctx => userSettings.updateUserSettings(ctx));
+    router.get(
+      `${prefix}/user-settings`,
+      withAuth(ctx => userSettings.getUserSettings(ctx))
+    );
+    router.put(
+      `${prefix}/user-settings`,
+      withAuth(ctx => userSettings.updateUserSettings(ctx))
+    );
   }
 };

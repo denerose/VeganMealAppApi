@@ -9,7 +9,7 @@
 
 Implement user authentication and registration system with email/password authentication for development, designed with extensible architecture to support future authentication methods (OAuth, social auth, passkeys). The system provides user registration, login, password management (change/reset), profile management, and JWT-based token authentication with multi-tenant isolation.
 
-**Technical Approach**: Clean Architecture with extensible authentication strategy pattern. Email/password authentication implemented first using bcrypt for password hashing and JWT for tokens. Architecture designed with `AuthProvider` interface to enable future OAuth, social auth, and passkey implementations without modifying core authentication flow. Rate limiting, token expiration (24h), and password reset tokens (1h) implemented per specification.
+**Technical Approach**: Clean Architecture with extensible authentication strategy pattern. Email/password authentication implemented first using bcrypt for password hashing and JWT for tokens. Architecture designed with `AuthProvider` interface to enable future OAuth, social auth, and passkey implementations without modifying core authentication flow. Rate limiting, token expiration (24h), and password reset tokens (1h) implemented per specification. Token refresh and logout/blacklisting are deferred to future iterations.
 
 ## Technical Context
 
