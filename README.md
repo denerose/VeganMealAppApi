@@ -39,7 +39,7 @@ cd VeganMealAppApi
 bun install
 
 # 3. Start PostgreSQL
-docker-compose up -d
+podman compose up -d
 
 # 4. Set up environment
 cp .env.example .env
