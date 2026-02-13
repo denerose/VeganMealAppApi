@@ -225,7 +225,7 @@ This document breaks down the seed file implementation into concrete, actionable
 - [X] T036 [P] Create comprehensive E2E test suite for all user stories
   - File: `tests/e2e/seeding.e2e.spec.ts`
   - Acceptance: Tests cover all 4 user stories; each test is independent; all assertions pass; seed completes in <2 minutes
-- [ ] T037 Run full test suite and achieve 100% pass rate
+- [X] T037 Run full test suite and achieve 100% pass rate
   - Command: `bun run check` (or `bun test`; seeding tests require database)
   - Acceptance: All unit tests pass, all integration tests pass, all E2E tests pass when DB is available; no flaky tests
 - [X] T038 Measure and verify seed execution time <2 minutes
@@ -255,7 +255,7 @@ This document breaks down the seed file implementation into concrete, actionable
 - [X] T047 Verify seed determinism (FR-008) via multiple runs
   - File: Test script or integration test in `tests/integration/seeding.integration.spec.ts`
   - Acceptance: Run seed twice on fresh databases with same inputs; compare database snapshots (meal names, ingredient IDs, user settings); verify 100% match (bit-for-bit identical output); document variance (if any) and root cause
-- [ ] T044 Run complete workflow: migrate → seed → test → verify
+- [X] T044 Run complete workflow: migrate → seed → test → verify
   - Commands: `bun run db:migrate && bun run db:seed && bun run check` (optional: `bun run db:studio` to inspect)
   - Acceptance: All steps succeed; data visible in Prisma Studio; no errors
 - [X] T045 Verify all acceptance criteria met for each user story + determinism
@@ -324,7 +324,7 @@ Use this section to track progress:
 - [X] T032-T035 Complete
 
 ### Phase 7: Testing & Polish
-- [ ] T036-T046 Complete (remaining: T037 full pass, T044 workflow run)
+- [X] T036-T046 Complete (remaining: T037 full pass, T044 workflow run)
 
 ---
 
