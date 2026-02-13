@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@prisma/client';
+import type { PrismaClient, Prisma } from '@prisma/client';
 import { format, parseISO } from 'date-fns';
 
 import type { PlannedWeekRepository } from '@/domain/planned-week/planned-week.repository';
@@ -6,7 +6,10 @@ import {
   type MealAssignment,
   PlannedWeek,
   type PlannedWeekSnapshot,
+  type PlannedWeekProps,
 } from '@/domain/planned-week/planned-week.entity';
+import { DayOfWeek } from '@/domain/shared/day-of-week.enum';
+import { ShortDay } from '@/domain/shared/short-day.enum';
 import { WeekStartDay } from '@/domain/shared/week-start-day.enum';
 
 export class PrismaPlannedWeekRepository implements PlannedWeekRepository {
@@ -15,9 +18,9 @@ export class PrismaPlannedWeekRepository implements PlannedWeekRepository {
   async create(plannedWeek: PlannedWeek): Promise<PlannedWeek> {
     // We need to generate an ID first, then create the snapshot
     const tempId = crypto.randomUUID();
-    
+
     // Assign the ID to the entity before creating snapshot
-    (plannedWeek.props as any).id = tempId;
+    (plannedWeek.props as PlannedWeekProps & { id: string }).id = tempId;
     const snapshot = plannedWeek.toSnapshot();
 
     const created = await this.prisma.plannedWeek.create({
@@ -126,7 +129,7 @@ export class PrismaPlannedWeekRepository implements PlannedWeekRepository {
 
   async findByTenantAndStartDate(
     tenantId: string,
-    startingDate: string,
+    startingDate: string
   ): Promise<PlannedWeek | null> {
     const plannedWeek = await this.prisma.plannedWeek.findFirst({
       where: {
@@ -163,22 +166,9 @@ export class PrismaPlannedWeekRepository implements PlannedWeekRepository {
   }
 
   private toDomain(
-    prismaData: {
-      id: string;
-      tenantId: string;
-      startingDate: Date;
-      dayPlans: Array<{
-        id: string;
-        date: Date;
-        longDay: string;
-        shortDay: string;
-        lunchMealId: string | null;
-        dinnerMealId: string | null;
-        isLeftover: boolean;
-      }>;
-    },
+    prismaData: Prisma.PlannedWeekGetPayload<{ include: { dayPlans: true } }>,
     weekStartDay: WeekStartDay,
-    dinnerAssignments?: Record<string, MealAssignment>,
+    dinnerAssignments?: Record<string, MealAssignment>
   ): PlannedWeek {
     const snapshot: PlannedWeekSnapshot = {
       id: prismaData.id,
@@ -187,8 +177,8 @@ export class PrismaPlannedWeekRepository implements PlannedWeekRepository {
       weekStartDay,
       dayPlans: prismaData.dayPlans.map(dayPlan => ({
         date: format(dayPlan.date, 'yyyy-MM-dd'),
-        longDay: dayPlan.longDay as any,
-        shortDay: dayPlan.shortDay as any,
+        longDay: dayPlan.longDay as DayOfWeek,
+        shortDay: dayPlan.shortDay as ShortDay,
         lunchMealId: dayPlan.lunchMealId,
         dinnerMealId: dayPlan.dinnerMealId,
         isLeftover: dayPlan.isLeftover,

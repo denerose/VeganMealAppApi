@@ -5,25 +5,25 @@ import {
   GetEligibleMealsUseCase,
   MealFilter,
   MealRepository,
-  MealSummary,
   UserSettings,
   UserSettingsRepository,
 } from '@/application/meal/get-eligible-meals.usecase';
+import type { MealSummary } from '@/domain/meal/meal.repository';
 import { DayOfWeek } from '@/domain/shared/day-of-week.enum';
 
 class InMemoryMealRepository implements MealRepository {
   constructor(private readonly meals: MealSummary[]) {}
 
-  async findByQualities(_tenantId: string, _filter: MealFilter): Promise<MealSummary[]> {
-    return this.meals;
+  findByQualities(_tenantId: string, _filter: MealFilter): Promise<MealSummary[]> {
+    return Promise.resolve(this.meals);
   }
 }
 
 class InMemoryUserSettingsRepository implements UserSettingsRepository {
   constructor(private readonly settings: UserSettings | null) {}
 
-  async findByTenantId(): Promise<UserSettings | null> {
-    return this.settings;
+  findByTenantId(): Promise<UserSettings | null> {
+    return Promise.resolve(this.settings);
   }
 }
 
@@ -73,23 +73,24 @@ describe('GetRandomMealUseCase', () => {
   });
 
   it('returns a single meal when only one eligible meal is available', async () => {
-    const meal = createMealSummary('meal-1', 'Single Meal');
+    const meal: MealSummary = createMealSummary('meal-1', 'Single Meal');
     const mealRepo = new InMemoryMealRepository([meal]);
     const settingsRepo = new InMemoryUserSettingsRepository(defaultSettings);
     const eligibleMealsUseCase = new GetEligibleMealsUseCase(mealRepo, settingsRepo);
     const useCase = new GetRandomMealUseCase(eligibleMealsUseCase);
 
-    const result = await useCase.execute({
+    const result: MealSummary | null = await useCase.execute({
       tenantId: 'tenant-1',
       date: '2025-01-06',
       mealType: 'lunch',
     });
 
-    expect(result).toEqual(meal);
+    expect(result).not.toBeNull();
+    expect(result).toStrictEqual(meal);
   });
 
   it('returns a meal from the eligible meals list when multiple are available', async () => {
-    const meals = [
+    const meals: MealSummary[] = [
       createMealSummary('meal-1', 'Meal 1'),
       createMealSummary('meal-2', 'Meal 2'),
       createMealSummary('meal-3', 'Meal 3'),
@@ -99,19 +100,20 @@ describe('GetRandomMealUseCase', () => {
     const eligibleMealsUseCase = new GetEligibleMealsUseCase(mealRepo, settingsRepo);
     const useCase = new GetRandomMealUseCase(eligibleMealsUseCase);
 
-    const result = await useCase.execute({
+    const result: MealSummary | null = await useCase.execute({
       tenantId: 'tenant-1',
       date: '2025-01-06',
       mealType: 'lunch',
     });
 
     expect(result).toBeDefined();
-    expect(result?.id).toBeDefined();
-    expect(meals.some(m => m.id === result?.id)).toBe(true);
+    const resultId: string | undefined = result?.id;
+    expect(resultId).toBeDefined();
+    expect(meals.some((m: MealSummary) => m.id === resultId)).toBe(true);
   });
 
   it('returns different meals on repeated calls with multiple eligible meals', async () => {
-    const meals = [
+    const meals: MealSummary[] = [
       createMealSummary('meal-1', 'Meal 1'),
       createMealSummary('meal-2', 'Meal 2'),
       createMealSummary('meal-3', 'Meal 3'),
@@ -125,7 +127,7 @@ describe('GetRandomMealUseCase', () => {
 
     const results = new Set<string>();
     for (let i = 0; i < 20; i++) {
-      const result = await useCase.execute({
+      const result: MealSummary | null = await useCase.execute({
         tenantId: 'tenant-1',
         date: '2025-01-06',
         mealType: 'lunch',
@@ -139,35 +141,35 @@ describe('GetRandomMealUseCase', () => {
     expect(results.size).toBeGreaterThan(1);
   });
 
-  it('throws when user settings are missing', async () => {
+  it('throws when user settings are missing', () => {
     const meal = createMealSummary('meal-1', 'Single Meal');
     const mealRepo = new InMemoryMealRepository([meal]);
     const settingsRepo = new InMemoryUserSettingsRepository(null);
     const eligibleMealsUseCase = new GetEligibleMealsUseCase(mealRepo, settingsRepo);
     const useCase = new GetRandomMealUseCase(eligibleMealsUseCase);
 
-    await expect(
+    return expect(
       useCase.execute({
         tenantId: 'tenant-1',
         date: '2025-01-06',
         mealType: 'lunch',
-      }),
+      })
     ).rejects.toThrow('user settings not found');
   });
 
-  it('throws when date format is invalid', async () => {
+  it('throws when date format is invalid', () => {
     const meal = createMealSummary('meal-1', 'Single Meal');
     const mealRepo = new InMemoryMealRepository([meal]);
     const settingsRepo = new InMemoryUserSettingsRepository(defaultSettings);
     const eligibleMealsUseCase = new GetEligibleMealsUseCase(mealRepo, settingsRepo);
     const useCase = new GetRandomMealUseCase(eligibleMealsUseCase);
 
-    await expect(
+    return expect(
       useCase.execute({
         tenantId: 'tenant-1',
         date: 'invalid-date',
         mealType: 'lunch',
-      }),
+      })
     ).rejects.toThrow('invalid date supplied');
   });
 });

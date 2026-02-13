@@ -38,22 +38,19 @@ export type MealSummary = {
 
 export interface MealRepository {
   create(meal: Meal, tenantId: string, createdBy?: string): Promise<Meal>;
-  
+
   findById(id: MealId, tenantId: string): Promise<Meal | null>;
-  
+
   findAll(
     tenantId: string,
     filters?: MealFilters,
     pagination?: PaginationOptions
   ): Promise<PaginatedResult<Meal>>;
-  
+
   save(meal: Meal, tenantId: string): Promise<Meal>;
-  
+
   delete(id: MealId, tenantId: string): Promise<void>;
 
   // Added for GetEligibleMealsUseCase compatibility
-  findByQualities(
-    tenantId: string,
-    filter: MealQualitiesFilter
-  ): Promise<MealSummary[]>;
+  findByQualities(tenantId: string, filter: MealQualitiesFilter): Promise<MealSummary[]>;
 }

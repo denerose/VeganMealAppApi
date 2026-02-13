@@ -2,7 +2,7 @@ import { describe, it, expect } from 'bun:test';
 
 /**
  * Unit Tests: Ingredient Domain Entity
- * 
+ *
  * Tests the Ingredient entity business rules.
  * Key validations:
  * 1. Storage type enum validation

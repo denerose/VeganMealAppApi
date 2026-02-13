@@ -11,7 +11,7 @@ export class DeletePlannedWeekUseCase {
   async execute(request: DeletePlannedWeekRequest): Promise<void> {
     const plannedWeek = await this.plannedWeekRepository.findById(
       request.plannedWeekId,
-      request.tenantId,
+      request.tenantId
     );
 
     if (!plannedWeek) {

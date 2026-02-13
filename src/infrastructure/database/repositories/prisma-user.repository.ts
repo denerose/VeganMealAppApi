@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@prisma/client';
+import type { PrismaClient, User as PrismaUser } from '@prisma/client';
 import type { User, UserId, UserRepository } from '@/domain/user/user.repository';
 
 export class PrismaUserRepository implements UserRepository {
@@ -7,7 +7,7 @@ export class PrismaUserRepository implements UserRepository {
   async findById(id: UserId, tenantId: string): Promise<User | null> {
     const user = await this.prisma.user.findFirst({
       where: {
-        userId: id,
+        id,
         tenantId,
       },
     });
@@ -39,13 +39,13 @@ export class PrismaUserRepository implements UserRepository {
       },
     });
 
-    return users.map(this.mapToUser);
+    return users.map((user: PrismaUser) => this.mapToUser(user));
   }
 
   async isUserAdmin(userId: UserId, tenantId: string): Promise<boolean> {
     const user = await this.prisma.user.findFirst({
       where: {
-        userId,
+        id: userId,
         tenantId,
       },
       select: {
@@ -56,9 +56,9 @@ export class PrismaUserRepository implements UserRepository {
     return user?.isTenantAdmin ?? false;
   }
 
-  private mapToUser(dbUser: any): User {
+  private mapToUser(dbUser: PrismaUser): User {
     return {
-      id: dbUser.userId,
+      id: dbUser.id,
       email: dbUser.email,
       nickname: dbUser.nickname,
       isTenantAdmin: dbUser.isTenantAdmin,

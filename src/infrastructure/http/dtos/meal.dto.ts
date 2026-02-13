@@ -1,4 +1,9 @@
+import type { MealSnapshot } from '@/domain/meal/meal.entity';
 import type { MealQualitiesProps } from '@/domain/meal/meal-qualities.vo';
+
+function isRecord(x: unknown): x is Record<string, unknown> {
+  return typeof x === 'object' && x !== null;
+}
 
 export type CreateMealRequestDto = {
   name: string;
@@ -40,7 +45,10 @@ export type PaginatedMealsResponseDto = {
   offset: number;
 };
 
-export function validateCreateMealRequest(data: any): CreateMealRequestDto {
+export function validateCreateMealRequest(data: unknown): CreateMealRequestDto {
+  if (!isRecord(data)) {
+    throw new Error('Invalid request: body must be an object');
+  }
   if (!data.name || typeof data.name !== 'string') {
     throw new Error('Invalid request: name is required and must be a string');
   }
@@ -50,26 +58,29 @@ export function validateCreateMealRequest(data: any): CreateMealRequestDto {
   };
 
   if (data.qualities) {
-    if (typeof data.qualities !== 'object') {
+    if (typeof data.qualities !== 'object' || data.qualities === null) {
       throw new Error('Invalid request: qualities must be an object');
     }
-    request.qualities = validateMealQualities(data.qualities);
+    request.qualities = validateMealQualities(data.qualities as Record<string, unknown>);
   }
 
   if (data.ingredientIds) {
     if (!Array.isArray(data.ingredientIds)) {
       throw new Error('Invalid request: ingredientIds must be an array');
     }
-    if (!data.ingredientIds.every((id: any) => typeof id === 'string')) {
+    if (!(data.ingredientIds as unknown[]).every((id: unknown) => typeof id === 'string')) {
       throw new Error('Invalid request: all ingredientIds must be strings');
     }
-    request.ingredientIds = data.ingredientIds;
+    request.ingredientIds = data.ingredientIds as string[];
   }
 
   return request;
 }
 
-export function validateUpdateMealRequest(data: any): UpdateMealRequestDto {
+export function validateUpdateMealRequest(data: unknown): UpdateMealRequestDto {
+  if (!isRecord(data)) {
+    throw new Error('Invalid request: body must be an object');
+  }
   const request: UpdateMealRequestDto = {};
 
   if (data.name !== undefined) {
@@ -80,26 +91,26 @@ export function validateUpdateMealRequest(data: any): UpdateMealRequestDto {
   }
 
   if (data.qualities !== undefined) {
-    if (typeof data.qualities !== 'object') {
+    if (typeof data.qualities !== 'object' || data.qualities === null) {
       throw new Error('Invalid request: qualities must be an object');
     }
-    request.qualities = validateMealQualities(data.qualities);
+    request.qualities = validateMealQualities(data.qualities as Record<string, unknown>);
   }
 
   if (data.ingredientIds !== undefined) {
     if (!Array.isArray(data.ingredientIds)) {
       throw new Error('Invalid request: ingredientIds must be an array');
     }
-    if (!data.ingredientIds.every((id: any) => typeof id === 'string')) {
+    if (!(data.ingredientIds as unknown[]).every((id: unknown) => typeof id === 'string')) {
       throw new Error('Invalid request: all ingredientIds must be strings');
     }
-    request.ingredientIds = data.ingredientIds;
+    request.ingredientIds = data.ingredientIds as string[];
   }
 
   return request;
 }
 
-function validateMealQualities(data: any): Partial<MealQualitiesProps> {
+function validateMealQualities(data: Record<string, unknown>): Partial<MealQualitiesProps> {
   const qualities: Partial<MealQualitiesProps> = {};
 
   if (data.isDinner !== undefined) {
@@ -161,7 +172,7 @@ function validateMealQualities(data: any): Partial<MealQualitiesProps> {
   return qualities;
 }
 
-export function toMealResponseDto(snapshot: any): MealResponseDto {
+export function toMealResponseDto(snapshot: MealSnapshot): MealResponseDto {
   return {
     id: snapshot.id,
     name: snapshot.name,

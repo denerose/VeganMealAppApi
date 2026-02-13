@@ -5,19 +5,26 @@ import { createErrorBody } from '@/infrastructure/http/dtos/common.dto';
 import type { RouteContext } from '@/infrastructure/http/routes';
 import type { MealSummaryDto } from '@/infrastructure/http/dtos/planned-week.dto';
 import { CreateMealUseCase } from '@/application/use-cases/create-meal.use-case';
+import { GetMealUseCase } from '@/application/use-cases/get-meal.use-case';
 import { ListMealsUseCase } from '@/application/use-cases/list-meals.use-case';
 import { UpdateMealUseCase } from '@/application/use-cases/update-meal.use-case';
 import { ArchiveMealUseCase } from '@/application/use-cases/archive-meal.use-case';
+import type { MealFilters } from '@/domain/meal/meal.repository';
 import {
   validateCreateMealRequest,
   validateUpdateMealRequest,
   toMealResponseDto,
 } from '../dtos/meal.dto';
 
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 export class MealController {
   constructor(
     private readonly getEligibleMealsUseCase: GetEligibleMealsUseCase,
     private readonly getRandomMealUseCase: GetRandomMealUseCase,
+    private readonly getMealUseCase: GetMealUseCase,
     private readonly createMealUseCase: CreateMealUseCase,
     private readonly listMealsUseCase: ListMealsUseCase,
     private readonly updateMealUseCase: UpdateMealUseCase,
@@ -36,7 +43,7 @@ export class MealController {
           {
             status: 400,
             headers: { 'Content-Type': 'application/json' },
-          },
+          }
         );
       }
 
@@ -46,20 +53,17 @@ export class MealController {
           {
             status: 400,
             headers: { 'Content-Type': 'application/json' },
-          },
+          }
         );
       }
 
       // Validate date format
       const datePattern = /^\d{4}-\d{2}-\d{2}$/;
       if (!datePattern.test(date)) {
-        return new Response(
-          JSON.stringify(createErrorBody('date must be in YYYY-MM-DD format')),
-          {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          },
-        );
+        return new Response(JSON.stringify(createErrorBody('date must be in YYYY-MM-DD format')), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
       }
 
       // TODO: Extract tenantId from auth context
@@ -97,11 +101,44 @@ export class MealController {
           {
             status: 404,
             headers: { 'Content-Type': 'application/json' },
-          },
+          }
         );
       }
 
       console.error('Error fetching eligible meals:', error);
+      return new Response(JSON.stringify(createErrorBody('Internal server error')), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  async get(context: RouteContext): Promise<Response> {
+    try {
+      const id = context.params.id ?? undefined;
+      if (!id) {
+        return new Response(JSON.stringify(createErrorBody('Meal ID is required')), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      const tenantId = context.request.headers.get('x-tenant-id') || 'temp-tenant-id';
+
+      const snapshot = await this.getMealUseCase.execute({ id, tenantId });
+
+      return new Response(JSON.stringify(toMealResponseDto(snapshot)), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch (error: unknown) {
+      if (errorMessage(error).includes('not found')) {
+        return new Response(JSON.stringify(createErrorBody(errorMessage(error))), {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      console.error('Error fetching meal:', error);
       return new Response(JSON.stringify(createErrorBody('Internal server error')), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
@@ -121,7 +158,7 @@ export class MealController {
           {
             status: 400,
             headers: { 'Content-Type': 'application/json' },
-          },
+          }
         );
       }
 
@@ -131,20 +168,17 @@ export class MealController {
           {
             status: 400,
             headers: { 'Content-Type': 'application/json' },
-          },
+          }
         );
       }
 
       // Validate date format
       const datePattern = /^\d{4}-\d{2}-\d{2}$/;
       if (!datePattern.test(date)) {
-        return new Response(
-          JSON.stringify(createErrorBody('date must be in YYYY-MM-DD format')),
-          {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          },
-        );
+        return new Response(JSON.stringify(createErrorBody('date must be in YYYY-MM-DD format')), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
       }
 
       // TODO: Extract tenantId from auth context
@@ -189,7 +223,7 @@ export class MealController {
           {
             status: 404,
             headers: { 'Content-Type': 'application/json' },
-          },
+          }
         );
       }
 
@@ -203,9 +237,8 @@ export class MealController {
 
   async create(context: RouteContext): Promise<Response> {
     try {
-      const body = await context.request.json();
+      const body = (await context.request.json()) as unknown;
       const dto = validateCreateMealRequest(body);
-
 
       // TODO: Extract tenantId from auth context
       const tenantId = context.request.headers.get('x-tenant-id') || 'temp-tenant-id';
@@ -219,9 +252,9 @@ export class MealController {
         status: 201,
         headers: { 'Content-Type': 'application/json' },
       });
-    } catch (error: any) {
-      if (error.message.includes('Invalid request')) {
-        return new Response(JSON.stringify(createErrorBody(error.message)), {
+    } catch (error: unknown) {
+      if (errorMessage(error).includes('Invalid request')) {
+        return new Response(JSON.stringify(createErrorBody(errorMessage(error))), {
           status: 400,
           headers: { 'Content-Type': 'application/json' },
         });
@@ -240,18 +273,27 @@ export class MealController {
       const tenantId = context.request.headers.get('x-tenant-id') || 'temp-tenant-id';
 
       const url = new URL(context.request.url);
-      const filters: any = {};
+      const filters: MealFilters = {};
 
       if (url.searchParams.get('name')) filters.name = url.searchParams.get('name');
-      if (url.searchParams.get('isDinner')) filters.isDinner = url.searchParams.get('isDinner') === 'true';
-      if (url.searchParams.get('isLunch')) filters.isLunch = url.searchParams.get('isLunch') === 'true';
-      if (url.searchParams.get('isCreamy')) filters.isCreamy = url.searchParams.get('isCreamy') === 'true';
-      if (url.searchParams.get('isAcidic')) filters.isAcidic = url.searchParams.get('isAcidic') === 'true';
-      if (url.searchParams.get('greenVeg')) filters.greenVeg = url.searchParams.get('greenVeg') === 'true';
-      if (url.searchParams.get('makesLunch')) filters.makesLunch = url.searchParams.get('makesLunch') === 'true';
-      if (url.searchParams.get('isEasyToMake')) filters.isEasyToMake = url.searchParams.get('isEasyToMake') === 'true';
-      if (url.searchParams.get('needsPrep')) filters.needsPrep = url.searchParams.get('needsPrep') === 'true';
-      if (url.searchParams.get('includeArchived')) filters.includeArchived = url.searchParams.get('includeArchived') === 'true';
+      if (url.searchParams.get('isDinner'))
+        filters.isDinner = url.searchParams.get('isDinner') === 'true';
+      if (url.searchParams.get('isLunch'))
+        filters.isLunch = url.searchParams.get('isLunch') === 'true';
+      if (url.searchParams.get('isCreamy'))
+        filters.isCreamy = url.searchParams.get('isCreamy') === 'true';
+      if (url.searchParams.get('isAcidic'))
+        filters.isAcidic = url.searchParams.get('isAcidic') === 'true';
+      if (url.searchParams.get('greenVeg'))
+        filters.greenVeg = url.searchParams.get('greenVeg') === 'true';
+      if (url.searchParams.get('makesLunch'))
+        filters.makesLunch = url.searchParams.get('makesLunch') === 'true';
+      if (url.searchParams.get('isEasyToMake'))
+        filters.isEasyToMake = url.searchParams.get('isEasyToMake') === 'true';
+      if (url.searchParams.get('needsPrep'))
+        filters.needsPrep = url.searchParams.get('needsPrep') === 'true';
+      if (url.searchParams.get('includeArchived'))
+        filters.includeArchived = url.searchParams.get('includeArchived') === 'true';
 
       const pagination = {
         limit: url.searchParams.get('limit') ? parseInt(url.searchParams.get('limit')!, 10) : 50,
@@ -276,7 +318,7 @@ export class MealController {
           headers: { 'Content-Type': 'application/json' },
         }
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error listing meals:', error);
       return new Response(JSON.stringify(createErrorBody('Internal server error')), {
         status: 500,
@@ -287,8 +329,14 @@ export class MealController {
 
   async update(context: RouteContext): Promise<Response> {
     try {
-      const id = context.params.id;
-      const body = await context.request.json();
+      const id = context.params.id ?? undefined;
+      if (!id) {
+        return new Response(JSON.stringify(createErrorBody('Meal ID is required')), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      const body = (await context.request.json()) as unknown;
       const dto = validateUpdateMealRequest(body);
 
       // TODO: Extract tenantId from auth context
@@ -304,15 +352,16 @@ export class MealController {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
-    } catch (error: any) {
-      if (error.message.includes('not found')) {
-        return new Response(JSON.stringify(createErrorBody(error.message)), {
+    } catch (error: unknown) {
+      const msg = errorMessage(error);
+      if (msg.includes('not found')) {
+        return new Response(JSON.stringify(createErrorBody(msg)), {
           status: 404,
           headers: { 'Content-Type': 'application/json' },
         });
       }
-      if (error.message.includes('Invalid request')) {
-        return new Response(JSON.stringify(createErrorBody(error.message)), {
+      if (msg.includes('Invalid request')) {
+        return new Response(JSON.stringify(createErrorBody(msg)), {
           status: 400,
           headers: { 'Content-Type': 'application/json' },
         });
@@ -327,7 +376,13 @@ export class MealController {
 
   async archive(context: RouteContext): Promise<Response> {
     try {
-      const id = context.params.id;
+      const id = context.params.id ?? undefined;
+      if (!id) {
+        return new Response(JSON.stringify(createErrorBody('Meal ID is required')), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
 
       // TODO: Extract tenantId from auth context
       const tenantId = context.request.headers.get('x-tenant-id') || 'temp-tenant-id';
@@ -341,9 +396,9 @@ export class MealController {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
-    } catch (error: any) {
-      if (error.message.includes('not found')) {
-        return new Response(JSON.stringify(createErrorBody(error.message)), {
+    } catch (error: unknown) {
+      if (errorMessage(error).includes('not found')) {
+        return new Response(JSON.stringify(createErrorBody(errorMessage(error))), {
           status: 404,
           headers: { 'Content-Type': 'application/json' },
         });
@@ -356,4 +411,3 @@ export class MealController {
     }
   }
 }
-

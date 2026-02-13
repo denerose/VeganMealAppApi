@@ -84,7 +84,7 @@ describe('PrismaUserSettingsRepository (integration)', () => {
 
     expect(saved.weekStartDay).toBe(WeekStartDay.SUNDAY);
     expect(saved.dailyPreferences).toHaveLength(7);
-    
+
     const mondayPref = saved.dailyPreferences.find(p => p.day === DayOfWeek.MONDAY);
     expect(mondayPref?.preferences.isCreamy).toBe(true);
   });
@@ -107,7 +107,7 @@ describe('PrismaUserSettingsRepository (integration)', () => {
     let settings = UserSettings.create(tenant1.id);
     settings = await repository.create(settings, tenant1.id);
 
-    await expect(repository.save(settings, tenant2.id)).rejects.toThrow(
+    return expect(repository.save(settings, tenant2.id)).rejects.toThrow(
       'User settings tenantId mismatch'
     );
   });
@@ -137,11 +137,11 @@ describe('PrismaUserSettingsRepository (integration)', () => {
     const found = await repository.findByTenantId(tenant.id);
 
     expect(found?.dailyPreferences).toHaveLength(7);
-    
+
     const monday = found?.dailyPreferences.find(p => p.day === DayOfWeek.MONDAY);
     expect(monday?.preferences.isCreamy).toBe(true);
     expect(monday?.preferences.greenVeg).toBe(true);
-    
+
     const friday = found?.dailyPreferences.find(p => p.day === DayOfWeek.FRIDAY);
     expect(friday?.preferences.isCreamy).toBe(false);
     expect(friday?.preferences.isAcidic).toBe(false);
@@ -161,6 +161,6 @@ describe('PrismaUserSettingsRepository (integration)', () => {
     const settings2 = UserSettings.create(tenant.id, WeekStartDay.SUNDAY);
 
     // Should fail due to unique constraint on tenantId
-    await expect(repository.create(settings2, tenant.id)).rejects.toThrow();
+    return expect(repository.create(settings2, tenant.id)).rejects.toThrow();
   });
 });

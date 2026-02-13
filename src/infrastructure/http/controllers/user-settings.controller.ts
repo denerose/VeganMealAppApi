@@ -1,5 +1,9 @@
 import type { GetUserSettingsUseCase } from '@/application/use-cases/get-user-settings.use-case';
-import type { UpdateUserSettingsUseCase } from '@/application/use-cases/update-user-settings.use-case';
+import type {
+  UpdateUserSettingsParams,
+  UpdateUserSettingsUseCase,
+} from '@/application/use-cases/update-user-settings.use-case';
+import type { UpdateUserSettingsDto } from '../dtos/user-settings.dto';
 import { toUserSettingsDto } from '../dtos/user-settings.dto';
 import { validateUpdateUserSettingsDto } from '../validators/user-settings.validator';
 import { createErrorBody } from '../dtos/common.dto';
@@ -15,8 +19,8 @@ export class UserSettingsController {
     try {
       // TODO: Extract userId and tenantId from authentication context
       // For now, placeholder auth check
-      const userId = context.params.userId || 'mock-user-id';
-      const tenantId = context.params.tenantId || 'mock-tenant-id';
+      const userId: string = context.params.userId ?? 'mock-user-id';
+      const tenantId: string = context.params.tenantId ?? 'mock-tenant-id';
 
       if (!userId || !tenantId) {
         return new Response(JSON.stringify(createErrorBody('Unauthorized')), {
@@ -34,7 +38,7 @@ export class UserSettingsController {
       });
     } catch (error) {
       console.error('Error getting user settings:', error);
-      
+
       if (error instanceof Error) {
         if (error.message === 'User not found') {
           return new Response(JSON.stringify(createErrorBody(error.message)), {
@@ -65,15 +69,16 @@ export class UserSettingsController {
       }
 
       // Validate request body
-      const body = await context.request.json();
-      const updateParams = validateUpdateUserSettingsDto(body);
+      const body = (await context.request.json()) as unknown;
+      const updateParams = validateUpdateUserSettingsDto(body) as UpdateUserSettingsDto;
 
       const settings = await this.updateUserSettingsUseCase.execute(
         userId,
         tenantId,
-        updateParams
+        updateParams as UpdateUserSettingsParams
       );
 
+      /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- toUserSettingsDto returns UserSettingsDto */
       const dto = toUserSettingsDto(settings);
 
       return new Response(JSON.stringify(dto), {

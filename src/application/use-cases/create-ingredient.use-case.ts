@@ -13,16 +13,9 @@ export class CreateIngredientUseCase {
   constructor(private ingredientRepository: IngredientRepository) {}
 
   async execute(request: CreateIngredientRequest): Promise<IngredientSnapshot> {
-    const ingredient = Ingredient.create(
-      request.name,
-      request.storageType,
-      request.isStaple
-    );
+    const ingredient = Ingredient.create(request.name, request.storageType, request.isStaple);
 
-    const savedIngredient = await this.ingredientRepository.create(
-      ingredient,
-      request.tenantId
-    );
+    const savedIngredient = await this.ingredientRepository.create(ingredient, request.tenantId);
     return savedIngredient.toSnapshot();
   }
 }

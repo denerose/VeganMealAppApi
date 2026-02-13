@@ -21,16 +21,16 @@ export type PaginatedResult<T> = {
 
 export interface IngredientRepository {
   create(ingredient: Ingredient, tenantId: string): Promise<Ingredient>;
-  
+
   findById(id: IngredientId, tenantId: string): Promise<Ingredient | null>;
-  
+
   findAll(
     tenantId: string,
     filters?: IngredientFilters,
     pagination?: PaginationOptions
   ): Promise<PaginatedResult<Ingredient>>;
-  
+
   save(ingredient: Ingredient, tenantId: string): Promise<Ingredient>;
-  
+
   delete(id: IngredientId, tenantId: string): Promise<void>;
 }

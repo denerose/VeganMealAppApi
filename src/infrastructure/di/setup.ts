@@ -1,4 +1,4 @@
-import { createToken, type DependencyToken, container } from '@/infrastructure/di/container';
+import { createToken, container } from '@/infrastructure/di/container';
 import { getPrismaClient } from '@/infrastructure/database/prisma/client';
 import type { PrismaClient } from '@prisma/client';
 
@@ -23,10 +23,12 @@ import { PopulateLeftoversUseCase } from '@/application/planned-week/populate-le
 import { GetEligibleMealsUseCase } from '@/application/meal/get-eligible-meals.usecase';
 import { GetRandomMealUseCase } from '@/application/meal/get-random-meal.usecase';
 import { CreateMealUseCase } from '@/application/use-cases/create-meal.use-case';
+import { GetMealUseCase } from '@/application/use-cases/get-meal.use-case';
 import { ListMealsUseCase } from '@/application/use-cases/list-meals.use-case';
 import { UpdateMealUseCase } from '@/application/use-cases/update-meal.use-case';
 import { ArchiveMealUseCase } from '@/application/use-cases/archive-meal.use-case';
 import { CreateIngredientUseCase } from '@/application/use-cases/create-ingredient.use-case';
+import { GetIngredientUseCase } from '@/application/use-cases/get-ingredient.use-case';
 import { ListIngredientsUseCase } from '@/application/use-cases/list-ingredients.use-case';
 import { UpdateIngredientUseCase } from '@/application/use-cases/update-ingredient.use-case';
 import { DeleteIngredientUseCase } from '@/application/use-cases/delete-ingredient.use-case';
@@ -65,10 +67,12 @@ export const TOKENS = {
   GetEligibleMealsUseCase: createToken<GetEligibleMealsUseCase>('GetEligibleMealsUseCase'),
   GetRandomMealUseCase: createToken<GetRandomMealUseCase>('GetRandomMealUseCase'),
   CreateMealUseCase: createToken<CreateMealUseCase>('CreateMealUseCase'),
+  GetMealUseCase: createToken<GetMealUseCase>('GetMealUseCase'),
   ListMealsUseCase: createToken<ListMealsUseCase>('ListMealsUseCase'),
   UpdateMealUseCase: createToken<UpdateMealUseCase>('UpdateMealUseCase'),
   ArchiveMealUseCase: createToken<ArchiveMealUseCase>('ArchiveMealUseCase'),
   CreateIngredientUseCase: createToken<CreateIngredientUseCase>('CreateIngredientUseCase'),
+  GetIngredientUseCase: createToken<GetIngredientUseCase>('GetIngredientUseCase'),
   ListIngredientsUseCase: createToken<ListIngredientsUseCase>('ListIngredientsUseCase'),
   UpdateIngredientUseCase: createToken<UpdateIngredientUseCase>('UpdateIngredientUseCase'),
   DeleteIngredientUseCase: createToken<DeleteIngredientUseCase>('DeleteIngredientUseCase'),
@@ -95,146 +99,157 @@ export const registerDependencies = (): void => {
   container.register(
     TOKENS.PlannedWeekRepository,
     c => new PrismaPlannedWeekRepository(c.resolve(TOKENS.PrismaClient)),
-    { singleton: true },
+    { singleton: true }
   );
 
   container.register(
     TOKENS.MealRepository,
     c => new PrismaMealRepository(c.resolve(TOKENS.PrismaClient)),
-    { singleton: true },
+    { singleton: true }
   );
 
   container.register(
     TOKENS.IngredientRepository,
     c => new PrismaIngredientRepository(c.resolve(TOKENS.PrismaClient)),
-    { singleton: true },
+    { singleton: true }
   );
 
   container.register(
     TOKENS.UserRepository,
     c => new PrismaUserRepository(c.resolve(TOKENS.PrismaClient)),
-    { singleton: true },
+    { singleton: true }
   );
 
   container.register(
     TOKENS.UserSettingsRepository,
     c => new PrismaUserSettingsRepository(c.resolve(TOKENS.PrismaClient)),
-    { singleton: true },
+    { singleton: true }
   );
 
   // Use Cases
   container.register(
     TOKENS.CreatePlannedWeekUseCase,
     c => new CreatePlannedWeekUseCase(c.resolve(TOKENS.PlannedWeekRepository)),
-    { singleton: true },
+    { singleton: true }
   );
 
   container.register(
     TOKENS.GetPlannedWeekUseCase,
     c => new GetPlannedWeekUseCase(c.resolve(TOKENS.PlannedWeekRepository)),
-    { singleton: true },
+    { singleton: true }
   );
 
   container.register(
     TOKENS.DeletePlannedWeekUseCase,
     c => new DeletePlannedWeekUseCase(c.resolve(TOKENS.PlannedWeekRepository)),
-    { singleton: true },
+    { singleton: true }
   );
 
   container.register(
     TOKENS.AssignMealToDayUseCase,
     c => new AssignMealToDayUseCase(c.resolve(TOKENS.PlannedWeekRepository)),
-    { singleton: true },
+    { singleton: true }
   );
 
   container.register(
     TOKENS.PopulateLeftoversUseCase,
     c => new PopulateLeftoversUseCase(c.resolve(TOKENS.PlannedWeekRepository)),
-    { singleton: true },
+    { singleton: true }
   );
 
   container.register(
     TOKENS.CreateMealUseCase,
     c => new CreateMealUseCase(c.resolve(TOKENS.MealRepository)),
-    { singleton: true },
+    { singleton: true }
+  );
+
+  container.register(
+    TOKENS.GetMealUseCase,
+    c => new GetMealUseCase(c.resolve(TOKENS.MealRepository)),
+    { singleton: true }
   );
 
   container.register(
     TOKENS.ListMealsUseCase,
     c => new ListMealsUseCase(c.resolve(TOKENS.MealRepository)),
-    { singleton: true },
+    { singleton: true }
   );
 
   container.register(
     TOKENS.UpdateMealUseCase,
     c => new UpdateMealUseCase(c.resolve(TOKENS.MealRepository)),
-    { singleton: true },
+    { singleton: true }
   );
 
   container.register(
     TOKENS.ArchiveMealUseCase,
     c => new ArchiveMealUseCase(c.resolve(TOKENS.MealRepository)),
-    { singleton: true },
+    { singleton: true }
   );
 
   container.register(
     TOKENS.CreateIngredientUseCase,
     c => new CreateIngredientUseCase(c.resolve(TOKENS.IngredientRepository)),
-    { singleton: true },
+    { singleton: true }
+  );
+
+  container.register(
+    TOKENS.GetIngredientUseCase,
+    c => new GetIngredientUseCase(c.resolve(TOKENS.IngredientRepository)),
+    { singleton: true }
   );
 
   container.register(
     TOKENS.ListIngredientsUseCase,
     c => new ListIngredientsUseCase(c.resolve(TOKENS.IngredientRepository)),
-    { singleton: true },
+    { singleton: true }
   );
 
   container.register(
     TOKENS.UpdateIngredientUseCase,
     c => new UpdateIngredientUseCase(c.resolve(TOKENS.IngredientRepository)),
-    { singleton: true },
+    { singleton: true }
   );
 
   container.register(
     TOKENS.DeleteIngredientUseCase,
     c => new DeleteIngredientUseCase(c.resolve(TOKENS.IngredientRepository)),
-    { singleton: true },
+    { singleton: true }
   );
 
   container.register(
     TOKENS.GetUserSettingsUseCase,
-    c => new GetUserSettingsUseCase(
-      c.resolve(TOKENS.UserSettingsRepository),
-      c.resolve(TOKENS.UserRepository)
-    ),
-    { singleton: true },
+    c =>
+      new GetUserSettingsUseCase(
+        c.resolve(TOKENS.UserSettingsRepository),
+        c.resolve(TOKENS.UserRepository)
+      ),
+    { singleton: true }
   );
 
   container.register(
     TOKENS.UpdateUserSettingsUseCase,
-    c => new UpdateUserSettingsUseCase(
-      c.resolve(TOKENS.UserSettingsRepository),
-      c.resolve(TOKENS.UserRepository)
-    ),
-    { singleton: true },
+    c =>
+      new UpdateUserSettingsUseCase(
+        c.resolve(TOKENS.UserSettingsRepository),
+        c.resolve(TOKENS.UserRepository)
+      ),
+    { singleton: true }
   );
 
   container.register(
     TOKENS.GetEligibleMealsUseCase,
-    c => new GetEligibleMealsUseCase(
-      c.resolve(TOKENS.MealRepository),
-      new GetEligibleMealsUserSettingsRepositoryAdapter(
-        c.resolve(TOKENS.UserSettingsRepository)
-      )
-    ),
+    c =>
+      new GetEligibleMealsUseCase(
+        c.resolve(TOKENS.MealRepository),
+        new GetEligibleMealsUserSettingsRepositoryAdapter(c.resolve(TOKENS.UserSettingsRepository))
+      ),
     { singleton: true }
   );
 
   container.register(
     TOKENS.GetRandomMealUseCase,
-    c => new GetRandomMealUseCase(
-      c.resolve(TOKENS.GetEligibleMealsUseCase)
-    ),
+    c => new GetRandomMealUseCase(c.resolve(TOKENS.GetEligibleMealsUseCase)),
     { singleton: true }
   );
 
@@ -246,9 +261,9 @@ export const registerDependencies = (): void => {
         c.resolve(TOKENS.CreatePlannedWeekUseCase),
         c.resolve(TOKENS.GetPlannedWeekUseCase),
         c.resolve(TOKENS.DeletePlannedWeekUseCase),
-        c.resolve(TOKENS.PopulateLeftoversUseCase),
+        c.resolve(TOKENS.PopulateLeftoversUseCase)
       ),
-    { singleton: true },
+    { singleton: true }
   );
 
   container.register(
@@ -256,41 +271,46 @@ export const registerDependencies = (): void => {
     c =>
       new DayPlanController(
         c.resolve(TOKENS.AssignMealToDayUseCase),
-        c.resolve(TOKENS.GetPlannedWeekUseCase),
+        c.resolve(TOKENS.GetPlannedWeekUseCase)
       ),
-    { singleton: true },
+    { singleton: true }
   );
 
   container.register(
     TOKENS.MealController,
-    c => new MealController(
-      c.resolve(TOKENS.GetEligibleMealsUseCase),
-      c.resolve(TOKENS.GetRandomMealUseCase),
-      c.resolve(TOKENS.CreateMealUseCase),
-      c.resolve(TOKENS.ListMealsUseCase),
-      c.resolve(TOKENS.UpdateMealUseCase),
-      c.resolve(TOKENS.ArchiveMealUseCase),
-    ),
+    c =>
+      new MealController(
+        c.resolve(TOKENS.GetEligibleMealsUseCase),
+        c.resolve(TOKENS.GetRandomMealUseCase),
+        c.resolve(TOKENS.GetMealUseCase),
+        c.resolve(TOKENS.CreateMealUseCase),
+        c.resolve(TOKENS.ListMealsUseCase),
+        c.resolve(TOKENS.UpdateMealUseCase),
+        c.resolve(TOKENS.ArchiveMealUseCase)
+      ),
     { singleton: true }
   );
 
   container.register(
     TOKENS.IngredientController,
-    c => new IngredientController(
-      c.resolve(TOKENS.CreateIngredientUseCase),
-      c.resolve(TOKENS.ListIngredientsUseCase),
-      c.resolve(TOKENS.UpdateIngredientUseCase),
-      c.resolve(TOKENS.DeleteIngredientUseCase),
-    ),
-    { singleton: true },
+    c =>
+      new IngredientController(
+        c.resolve(TOKENS.GetIngredientUseCase),
+        c.resolve(TOKENS.CreateIngredientUseCase),
+        c.resolve(TOKENS.ListIngredientsUseCase),
+        c.resolve(TOKENS.UpdateIngredientUseCase),
+        c.resolve(TOKENS.DeleteIngredientUseCase)
+      ),
+    { singleton: true }
   );
 
   container.register(
     TOKENS.UserSettingsController,
-    c => new UserSettingsController(
-      c.resolve(TOKENS.GetUserSettingsUseCase),
-      c.resolve(TOKENS.UpdateUserSettingsUseCase),
-    ),
-    { singleton: true },
+    c =>
+      new UserSettingsController(
+        c.resolve(TOKENS.GetUserSettingsUseCase),
+        c.resolve(TOKENS.UpdateUserSettingsUseCase)
+      ),
+    { singleton: true }
   );
 };

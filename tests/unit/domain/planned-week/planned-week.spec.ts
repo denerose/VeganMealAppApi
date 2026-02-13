@@ -28,7 +28,7 @@ describe('PlannedWeek aggregate', () => {
         tenantId: 'tenant-1',
         startingDate: '2025-01-07',
         weekStartDay: WeekStartDay.MONDAY,
-      }),
+      })
     ).toThrow('starting date must align with configured week start day');
   });
 

@@ -11,7 +11,7 @@ export class ArchiveMealUseCase {
 
   async execute(request: ArchiveMealRequest): Promise<MealSnapshot> {
     const meal = await this.mealRepository.findById(request.id, request.tenantId);
-    
+
     if (!meal) {
       throw new Error(`Meal with ID ${request.id} not found`);
     }

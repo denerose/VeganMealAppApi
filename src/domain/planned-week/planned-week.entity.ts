@@ -165,7 +165,7 @@ export class PlannedWeek {
         Array.from(this.dinnerAssignments.entries()).map(([date, assignment]) => [
           date,
           { ...assignment },
-        ]),
+        ])
       ),
     };
   }

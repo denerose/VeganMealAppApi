@@ -9,7 +9,10 @@ describe('Random Meal API (contract)', () => {
 
   test.todo('returns a random meal from eligible meals for dinner slots', () => {});
 
-  test.todo('returns null when no meals satisfy daily preferences but allows manual assignment', () => {});
+  test.todo(
+    'returns null when no meals satisfy daily preferences but allows manual assignment',
+    () => {}
+  );
 
   test.todo('validates date query parameter format', () => {});
 

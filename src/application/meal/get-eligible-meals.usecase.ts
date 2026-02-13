@@ -36,7 +36,7 @@ export interface MealRepository {
 
 export type DailyPreference = {
   day: DayOfWeek;
-  preferences: Partial<Record<typeof QUALITY_FLAGS[number], boolean>>;
+  preferences: Partial<Record<(typeof QUALITY_FLAGS)[number], boolean>>;
 };
 
 export type UserSettings = {
@@ -59,7 +59,7 @@ export type GetEligibleMealsRequest = {
 export class GetEligibleMealsUseCase {
   constructor(
     private readonly mealRepository: MealRepository,
-    private readonly userSettingsRepository: UserSettingsRepository,
+    private readonly userSettingsRepository: UserSettingsRepository
   ) {}
 
   async execute(request: GetEligibleMealsRequest): Promise<MealSummary[]> {

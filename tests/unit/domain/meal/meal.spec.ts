@@ -2,7 +2,7 @@ import { describe, it, expect } from 'bun:test';
 
 /**
  * Unit Tests: Meal Domain Entity
- * 
+ *
  * Tests the Meal aggregate and MealQualities value object business rules.
  * Key validations:
  * 1. MealQualities mutual exclusivity (isCreamy vs isAcidic)

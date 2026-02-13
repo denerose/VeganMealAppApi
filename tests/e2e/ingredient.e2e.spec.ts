@@ -2,7 +2,7 @@ import { describe, test } from 'bun:test';
 
 /**
  * E2E Contract Tests: Ingredient CRUD Operations
- * 
+ *
  * These tests describe the expected HTTP behavior for ingredient management endpoints.
  * They serve as executable documentation of the API contract per OpenAPI spec.
  */

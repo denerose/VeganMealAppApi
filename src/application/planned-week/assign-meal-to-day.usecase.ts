@@ -1,8 +1,4 @@
-import {
-  MealAssignment,
-  MealSlot,
-  PlannedWeek,
-} from '@/domain/planned-week/planned-week.entity';
+import { MealAssignment, MealSlot, PlannedWeek } from '@/domain/planned-week/planned-week.entity';
 import { PlannedWeekRepository } from '@/domain/planned-week/planned-week.repository';
 
 export type AssignMealToDayRequest = {
@@ -34,7 +30,7 @@ export class AssignMealToDayUseCase {
 
   private async ensurePlannedWeekExists(
     plannedWeekId: string,
-    tenantId: string,
+    tenantId: string
   ): Promise<PlannedWeek> {
     const plannedWeek = await this.plannedWeekRepository.findById(plannedWeekId, tenantId);
 

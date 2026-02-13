@@ -11,15 +11,17 @@ const jsonResponse = (body: unknown, status: number): Response =>
     },
   });
 
-export const withErrorHandling = (handler: Handler): Handler => async request => {
-  try {
-    return await handler(request);
-  } catch (error) {
-    if (error instanceof ValidationError) {
-      return jsonResponse(createErrorBody(error.message, error.details), 422);
-    }
+export const withErrorHandling =
+  (handler: Handler): Handler =>
+  async request => {
+    try {
+      return await handler(request);
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        return jsonResponse(createErrorBody(error.message, error.details), 422);
+      }
 
-    console.error('Unhandled error', error);
-    return jsonResponse(createErrorBody('Internal Server Error'), 500);
-  }
-};
+      console.error('Unhandled error', error);
+      return jsonResponse(createErrorBody('Internal Server Error'), 500);
+    }
+  };

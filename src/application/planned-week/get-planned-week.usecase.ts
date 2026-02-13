@@ -12,7 +12,7 @@ export class GetPlannedWeekUseCase {
   async execute(request: GetPlannedWeekRequest): Promise<PlannedWeek> {
     const plannedWeek = await this.plannedWeekRepository.findById(
       request.plannedWeekId,
-      request.tenantId,
+      request.tenantId
     );
 
     if (!plannedWeek) {

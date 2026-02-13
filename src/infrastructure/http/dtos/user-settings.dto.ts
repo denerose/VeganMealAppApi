@@ -1,4 +1,4 @@
-import type { UserSettings, DailyPreferences, QualityPreferences } from '@/domain/user/user-settings.entity';
+import type { UserSettings } from '@/domain/user/user-settings.entity';
 import type { WeekStartDay } from '@/domain/shared/week-start-day.enum';
 import type { DayOfWeek } from '@/domain/shared/day-of-week.enum';
 

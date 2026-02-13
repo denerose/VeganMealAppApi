@@ -1,23 +1,12 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version Change: 1.0.0 → 1.1.0
-Change Type: MINOR (new principles added)
-Rationale: Added Domain Driven Design principle and Vegan-First Testing principle to expand governance framework
+Version Change: 1.1.0 → 1.1.1
+Change Type: PATCH (amendment documentation corrected)
+Rationale: Amendment record corrected for governance accuracy. Previous amendment (1.0.0→1.1.0, MINOR): Added Domain Driven Design and Vegan-First Testing principles.
 
-Modified Principles: None
-Added Sections:
-  - VI. Domain Driven Design (new core principle)
-  - VII. Vegan-First Testing & Examples (new core principle)
-
-Templates Requiring Updates:
-  ✅ plan-template.md - verified alignment with constitution checks
-  ✅ spec-template.md - verified alignment with testability and domain requirements
-  ✅ tasks-template.md - verified alignment with test-first and modular task structure
-  ⚠️  All example code and tests - MUST use vegan diet examples going forward
-
-Follow-up TODOs:
-  - Review existing examples/tests to align with vegan-first principle (if any exist)
+Modified: SYNC IMPACT REPORT (version and change type)
+Templates: No template changes this amendment.
 -->
 
 # VeganMealAppApi Constitution
@@ -137,7 +126,6 @@ All development MUST follow this workflow to ensure constitution compliance:
 - **Review Cadence**: Constitution MUST be reviewed quarterly for relevance and effectiveness
 - **Complexity Justification**: Deviations from principles MUST be documented in implementation plans with architectural justification
 
-**Version**: 1.1.0 | **Ratified**: 2025-12-30 | **Last Amended**: 2025-12-30
 1. **Spec → Plan → Tests**: Feature specification → Implementation plan → Write tests (tests fail)
 2. **Implement**: Write minimum code to make tests pass (Red-Green-Refactor cycle)
 3. **Review**: Peer review verifying constitution compliance
@@ -145,6 +133,7 @@ All development MUST follow this workflow to ensure constitution compliance:
 
 ### Tools & Automation
 
+- **Unified Check Script**: Format, lint, and tests MUST be verified using `./scripts/check.sh` (or `bun run check`). Agents and developers MUST NOT run `format:check`, `lint`, or `test` individually when validating changes; the check script reports only errors and failures, keeping context smaller and feedback actionable.
 - **Linting**: Automated code style enforcement (no manual style reviews)
 - **CI Pipeline**: Automated test execution, coverage reporting, performance benchmarks
 - **Static Analysis**: Dependency analysis, architecture validation, code quality metrics
@@ -162,4 +151,4 @@ This constitution is the supreme authority for all development practices:
 - **Review Cadence**: Constitution MUST be reviewed quarterly for relevance and effectiveness
 - **Complexity Justification**: Deviations from principles MUST be documented in implementation plans with architectural justification
 
-**Version**: 1.0.0 | **Ratified**: 2025-12-30 | **Last Amended**: 2025-12-30
+**Version**: 1.1.1 | **Ratified**: 2025-12-30 | **Last Amended**: 2026-02-13

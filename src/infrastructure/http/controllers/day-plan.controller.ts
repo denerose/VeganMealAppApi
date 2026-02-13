@@ -2,7 +2,6 @@ import type { AssignMealToDayUseCase } from '@/application/planned-week/assign-m
 import type { GetPlannedWeekUseCase } from '@/application/planned-week/get-planned-week.usecase';
 import type { MealSlot } from '@/domain/planned-week/planned-week.entity';
 import {
-  type UpdateDayPlanRequestDto,
   type DayPlanResponseDto,
   validateUpdateDayPlanRequest,
 } from '@/infrastructure/http/dtos/planned-week.dto';
@@ -12,7 +11,7 @@ import type { RouteContext } from '@/infrastructure/http/routes';
 export class DayPlanController {
   constructor(
     private readonly assignMealToDayUseCase: AssignMealToDayUseCase,
-    private readonly getPlannedWeekUseCase: GetPlannedWeekUseCase,
+    private readonly getPlannedWeekUseCase: GetPlannedWeekUseCase
   ) {}
 
   async update(context: RouteContext): Promise<Response> {
@@ -25,7 +24,7 @@ export class DayPlanController {
         });
       }
 
-      const body = await context.request.json();
+      const body = (await context.request.json()) as Record<string, unknown>;
       const validation = validateUpdateDayPlanRequest(body);
 
       if (!validation.valid) {
@@ -34,7 +33,7 @@ export class DayPlanController {
           {
             status: 400,
             headers: { 'Content-Type': 'application/json' },
-          },
+          }
         );
       }
 
@@ -46,12 +45,12 @@ export class DayPlanController {
       if (!plannedWeekId || !date) {
         return new Response(
           JSON.stringify(
-            createErrorBody('Invalid day plan ID format. Expected: {weekId}:{YYYY-MM-DD}'),
+            createErrorBody('Invalid day plan ID format. Expected: {weekId}:{YYYY-MM-DD}')
           ),
           {
             status: 400,
             headers: { 'Content-Type': 'application/json' },
-          },
+          }
         );
       }
 

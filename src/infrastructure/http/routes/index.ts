@@ -1,7 +1,9 @@
+import type { DayPlanController } from '@/infrastructure/http/controllers/day-plan.controller';
+import type { IngredientController } from '@/infrastructure/http/controllers/ingredient.controller';
+import type { MealController } from '@/infrastructure/http/controllers/meal.controller';
+import type { PlannedWeekController } from '@/infrastructure/http/controllers/planned-week.controller';
+import type { UserSettingsController } from '@/infrastructure/http/controllers/user-settings.controller';
 import { createErrorBody } from '@/infrastructure/http/dtos/common.dto';
-
-// Bun runtime provides URLPattern
-declare const URLPattern: any;
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -13,9 +15,20 @@ export type RouteContext = {
 
 export type RouteHandler = (context: RouteContext) => Promise<Response> | Response;
 
+interface URLPatternExecResult {
+  pathname: { groups?: Record<string, string> };
+}
+
+export interface URLPatternLike {
+  exec(url: URL): URLPatternExecResult | null;
+}
+
+/** Bun runtime provides URLPattern globally */
+declare const URLPattern: new (init: { pathname: string }) => URLPatternLike;
+
 type RouteDefinition = {
   method: HttpMethod;
-  pattern: any; // URLPattern from Bun runtime
+  pattern: URLPatternLike;
   handler: RouteHandler;
 };
 
@@ -59,13 +72,14 @@ export class AppRouter {
         continue;
       }
 
-      const match = route.pattern.exec(url);
+      const match: URLPatternExecResult | null = route.pattern.exec(url);
 
       if (match) {
+        const params: Record<string, string> = match.pathname.groups ?? {};
         return route.handler({
           request,
           url,
-          params: match.pathname.groups ?? {},
+          params,
         });
       }
     }
@@ -92,22 +106,21 @@ export const createHttpRouter = (): AppRouter => {
       status: 'ok',
       timestamp: new Date().toISOString(),
       path: url.pathname,
-    }),
+    })
   );
 
   return router;
-}
+};
 
-export const registerRoutes = (
-  router: AppRouter,
-  controllers: {
-    plannedWeek: any;
-    dayPlan: any;
-    meal?: any;
-    ingredient?: any;
-    userSettings?: any;
-  },
-): void => {
+export type RouteControllers = {
+  plannedWeek: PlannedWeekController;
+  dayPlan: DayPlanController;
+  meal?: MealController;
+  ingredient?: IngredientController;
+  userSettings?: UserSettingsController;
+};
+
+export const registerRoutes = (router: AppRouter, controllers: RouteControllers): void => {
   const prefix = API_PREFIX;
 
   // Planned Weeks
@@ -120,27 +133,33 @@ export const registerRoutes = (
 
   // Meals
   if (controllers.meal) {
-    router.get(`${prefix}/meals`, ctx => controllers.meal.list(ctx));
-    router.post(`${prefix}/meals`, ctx => controllers.meal.create(ctx));
-    router.get(`${prefix}/meals/eligible`, ctx => controllers.meal.getEligible(ctx));
-    router.get(`${prefix}/meals/random`, ctx => controllers.meal.getRandom(ctx));
-    router.get(`${prefix}/meals/:id`, ctx => controllers.meal.get(ctx));
-    router.put(`${prefix}/meals/:id`, ctx => controllers.meal.update(ctx));
-    router.delete(`${prefix}/meals/:id`, ctx => controllers.meal.archive(ctx));
+    const meal = controllers.meal;
+    router.get(`${prefix}/meals`, (ctx): Promise<Response> => meal.list(ctx));
+    router.post(`${prefix}/meals`, (ctx): Promise<Response> => meal.create(ctx));
+    router.get(`${prefix}/meals/eligible`, (ctx): Promise<Response> => meal.getEligible(ctx));
+    router.get(`${prefix}/meals/random`, (ctx): Promise<Response> => meal.getRandom(ctx));
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call -- meal controller methods return Promise<Response>
+    router.get(`${prefix}/meals/:id`, (ctx: RouteContext): Promise<Response> => meal.get(ctx));
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call -- meal controller methods return Promise<Response>
+    router.put(`${prefix}/meals/:id`, (ctx: RouteContext): Promise<Response> => meal.update(ctx));
+    router.delete(`${prefix}/meals/:id`, (ctx): Promise<Response> => meal.archive(ctx));
   }
 
   // Ingredients
   if (controllers.ingredient) {
-    router.get(`${prefix}/ingredients`, ctx => controllers.ingredient.list(ctx));
-    router.post(`${prefix}/ingredients`, ctx => controllers.ingredient.create(ctx));
-    router.get(`${prefix}/ingredients/:id`, ctx => controllers.ingredient.get(ctx));
-    router.put(`${prefix}/ingredients/:id`, ctx => controllers.ingredient.update(ctx));
-    router.delete(`${prefix}/ingredients/:id`, ctx => controllers.ingredient.delete(ctx));
+    const ingredient = controllers.ingredient;
+    router.get(`${prefix}/ingredients`, (ctx): Promise<Response> => ingredient.list(ctx));
+    router.post(`${prefix}/ingredients`, (ctx): Promise<Response> => ingredient.create(ctx));
+    /* eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call */
+    router.get(`${prefix}/ingredients/:id`, (ctx): Promise<Response> => ingredient.get(ctx));
+    /* eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call */
+    router.put(`${prefix}/ingredients/:id`, (ctx): Promise<Response> => ingredient.update(ctx));
+    router.delete(`${prefix}/ingredients/:id`, (ctx): Promise<Response> => ingredient.delete(ctx));
   }
 
   // User Settings
   if (controllers.userSettings) {
-    router.get(`${prefix}/user-settings`, ctx => controllers.userSettings.get(ctx));
-    router.put(`${prefix}/user-settings`, ctx => controllers.userSettings.update(ctx));
+    router.get(`${prefix}/user-settings`, ctx => controllers.userSettings.getUserSettings(ctx));
+    router.put(`${prefix}/user-settings`, ctx => controllers.userSettings.updateUserSettings(ctx));
   }
-};;
+};

@@ -4,9 +4,7 @@ import type {
 } from '@/application/meal/get-eligible-meals.usecase';
 import type { UserSettingsRepository as DomainUserSettingsRepository } from '@/domain/user/user-settings.repository';
 
-export class GetEligibleMealsUserSettingsRepositoryAdapter
-  implements EligibleUserSettingsRepository
-{
+export class GetEligibleMealsUserSettingsRepositoryAdapter implements EligibleUserSettingsRepository {
   constructor(private readonly repository: DomainUserSettingsRepository) {}
 
   async findByTenantId(tenantId: string): Promise<EligibleUserSettings | null> {
@@ -19,7 +17,7 @@ export class GetEligibleMealsUserSettingsRepositoryAdapter
       id: settings.id,
       tenantId: settings.tenantId,
       weekStartDay: settings.weekStartDay,
-      dailyPreferences: settings.dailyPreferences.map((dp) => ({
+      dailyPreferences: settings.dailyPreferences.map(dp => ({
         day: dp.day,
         preferences: {
           ...dp.preferences,

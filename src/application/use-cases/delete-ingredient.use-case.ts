@@ -10,11 +10,8 @@ export class DeleteIngredientUseCase {
   constructor(private ingredientRepository: IngredientRepository) {}
 
   async execute(request: DeleteIngredientRequest): Promise<void> {
-    const ingredient = await this.ingredientRepository.findById(
-      request.id,
-      request.tenantId
-    );
-    
+    const ingredient = await this.ingredientRepository.findById(request.id, request.tenantId);
+
     if (!ingredient) {
       throw new Error(`Ingredient with ID ${request.id} not found`);
     }

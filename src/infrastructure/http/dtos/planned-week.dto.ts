@@ -54,7 +54,7 @@ export type MealSummaryDto = {
 // =============================================================================
 
 export const validateCreatePlannedWeekRequest = (
-  body: unknown,
+  body: unknown
 ): { valid: true; data: CreatePlannedWeekRequestDto } | { valid: false; errors: string[] } => {
   const errors: string[] = [];
 
@@ -86,7 +86,7 @@ export const validateCreatePlannedWeekRequest = (
 };
 
 export const validateUpdateDayPlanRequest = (
-  body: unknown,
+  body: unknown
 ): { valid: true; data: UpdateDayPlanRequestDto } | { valid: false; errors: string[] } => {
   const errors: string[] = [];
 
@@ -114,11 +114,7 @@ export const validateUpdateDayPlanRequest = (
     }
   }
 
-  if (
-    !('lunchMealId' in req) &&
-    !('dinnerMealId' in req) &&
-    !('makesLunch' in req)
-  ) {
+  if (!('lunchMealId' in req) && !('dinnerMealId' in req) && !('makesLunch' in req)) {
     errors.push('At least one of lunchMealId, dinnerMealId, or makesLunch must be provided');
   }
 

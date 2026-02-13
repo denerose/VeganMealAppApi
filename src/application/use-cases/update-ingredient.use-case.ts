@@ -14,11 +14,8 @@ export class UpdateIngredientUseCase {
   constructor(private ingredientRepository: IngredientRepository) {}
 
   async execute(request: UpdateIngredientRequest): Promise<IngredientSnapshot> {
-    const ingredient = await this.ingredientRepository.findById(
-      request.id,
-      request.tenantId
-    );
-    
+    const ingredient = await this.ingredientRepository.findById(request.id, request.tenantId);
+
     if (!ingredient) {
       throw new Error(`Ingredient with ID ${request.id} not found`);
     }
@@ -35,10 +32,7 @@ export class UpdateIngredientUseCase {
       ingredient.setStaple(request.isStaple);
     }
 
-    const savedIngredient = await this.ingredientRepository.save(
-      ingredient,
-      request.tenantId
-    );
+    const savedIngredient = await this.ingredientRepository.save(ingredient, request.tenantId);
     return savedIngredient.toSnapshot();
   }
 }

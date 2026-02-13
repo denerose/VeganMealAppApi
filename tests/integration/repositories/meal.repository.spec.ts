@@ -1,5 +1,4 @@
 import { describe, test, expect, beforeEach } from 'bun:test';
-import { getPrismaClient } from '@/infrastructure/database/prisma/client';
 import { PrismaMealRepository } from '@/infrastructure/database/repositories/prisma-meal.repository';
 import { Meal } from '@/domain/meal/meal.entity';
 import { resetDatabase, getTestPrisma } from '../../setup';
@@ -12,7 +11,7 @@ const TEST_USER_ID = crypto.randomUUID();
 
 beforeEach(async () => {
   await resetDatabase();
-  
+
   // Create test tenant and user
   await prisma.tenant.create({
     data: {
@@ -189,22 +188,14 @@ describe('PrismaMealRepository', () => {
         await repository.create(meal, TEST_TENANT_ID, TEST_USER_ID);
       }
 
-      const result = await repository.findAll(
-        TEST_TENANT_ID,
-        undefined,
-        { limit: 10, offset: 0 }
-      );
+      const result = await repository.findAll(TEST_TENANT_ID, undefined, { limit: 10, offset: 0 });
 
       expect(result.items).toHaveLength(10);
       expect(result.total).toBe(15);
       expect(result.limit).toBe(10);
       expect(result.offset).toBe(0);
 
-      const page2 = await repository.findAll(
-        TEST_TENANT_ID,
-        undefined,
-        { limit: 10, offset: 10 }
-      );
+      const page2 = await repository.findAll(TEST_TENANT_ID, undefined, { limit: 10, offset: 10 });
 
       expect(page2.items).toHaveLength(5);
     });
@@ -288,9 +279,7 @@ describe('PrismaMealRepository', () => {
       const meal = Meal.create('Test Meal');
       const savedMeal = await repository.create(meal, TEST_TENANT_ID, TEST_USER_ID);
 
-      await expect(
-        repository.delete(savedMeal.id!, otherTenantId)
-      ).rejects.toThrow();
+      return expect(repository.delete(savedMeal.id!, otherTenantId)).rejects.toThrow();
 
       const foundMeal = await repository.findById(savedMeal.id!, TEST_TENANT_ID);
       expect(foundMeal).not.toBeNull();

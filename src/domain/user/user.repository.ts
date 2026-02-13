@@ -12,10 +12,10 @@ export type User = {
 
 export interface UserRepository {
   findById(id: UserId, tenantId: string): Promise<User | null>;
-  
+
   findByEmail(email: string): Promise<User | null>;
-  
+
   findAdminsByTenant(tenantId: string): Promise<User[]>;
-  
+
   isUserAdmin(userId: UserId, tenantId: string): Promise<boolean>;
 }

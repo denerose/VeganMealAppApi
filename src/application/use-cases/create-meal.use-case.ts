@@ -15,11 +15,7 @@ export class CreateMealUseCase {
   constructor(private mealRepository: MealRepository) {}
 
   async execute(request: CreateMealRequest): Promise<MealSnapshot> {
-    const meal = Meal.create(
-      request.name,
-      request.qualities,
-      request.ingredientIds
-    );
+    const meal = Meal.create(request.name, request.qualities, request.ingredientIds);
 
     const savedMeal = await this.mealRepository.create(meal, request.tenantId, request.createdBy);
     return savedMeal.toSnapshot();

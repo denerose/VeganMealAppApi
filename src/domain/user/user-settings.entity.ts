@@ -44,19 +44,12 @@ export class UserSettings {
     }
 
     // Create default empty preferences for all 7 days
-    const dailyPreferences: DailyPreferences[] = DAY_OF_WEEK_VALUES.map((day) => ({
+    const dailyPreferences: DailyPreferences[] = DAY_OF_WEEK_VALUES.map(day => ({
       day,
       preferences: {},
     }));
 
-    return new UserSettings(
-      null,
-      weekStartDay,
-      dailyPreferences,
-      tenantId,
-      new Date(),
-      new Date()
-    );
+    return new UserSettings(null, weekStartDay, dailyPreferences, tenantId, new Date(), new Date());
   }
 
   static rehydrate(snapshot: UserSettingsSnapshot): UserSettings {
@@ -80,14 +73,14 @@ export class UserSettings {
     }
 
     // Check for duplicate days
-    const days = dailyPreferences.map((dp) => dp.day);
+    const days = dailyPreferences.map(dp => dp.day);
     const uniqueDays = new Set(days);
     if (uniqueDays.size !== 7) {
       throw new Error('Daily preferences cannot contain duplicate days');
     }
 
     // Verify all days are present
-    const missingDays = DAY_OF_WEEK_VALUES.filter((day) => !days.includes(day));
+    const missingDays = DAY_OF_WEEK_VALUES.filter(day => !days.includes(day));
     if (missingDays.length > 0) {
       throw new Error(
         `Daily preferences must include all days of the week. Missing: ${missingDays.join(', ')}`
@@ -103,7 +96,7 @@ export class UserSettings {
       // Validate quality preferences are booleans if present
       if (dp.preferences) {
         const invalidKeys = Object.entries(dp.preferences)
-          .filter(([key, value]) => value !== undefined && typeof value !== 'boolean')
+          .filter(([_key, value]) => value !== undefined && typeof value !== 'boolean')
           .map(([key]) => key);
 
         if (invalidKeys.length > 0) {
@@ -125,7 +118,7 @@ export class UserSettings {
 
   get dailyPreferences(): DailyPreferences[] {
     // Return a deep copy to prevent external mutation
-    return this._dailyPreferences.map((dp) => ({
+    return this._dailyPreferences.map(dp => ({
       day: dp.day,
       preferences: { ...dp.preferences },
     }));
@@ -157,7 +150,7 @@ export class UserSettings {
     UserSettings.validateDailyPreferences(dailyPreferences);
 
     // Deep copy to prevent external mutation
-    this._dailyPreferences = dailyPreferences.map((dp) => ({
+    this._dailyPreferences = dailyPreferences.map(dp => ({
       day: dp.day,
       preferences: { ...dp.preferences },
     }));

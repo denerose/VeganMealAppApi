@@ -28,9 +28,7 @@ export class Ingredient {
     }
 
     if (!STORAGE_TYPE_VALUES.includes(storageType)) {
-      throw new Error(
-        `Invalid storage type. Must be one of: ${STORAGE_TYPE_VALUES.join(', ')}`
-      );
+      throw new Error(`Invalid storage type. Must be one of: ${STORAGE_TYPE_VALUES.join(', ')}`);
     }
 
     return new Ingredient(null, trimmedName, storageType, isStaple, new Date(), new Date());
@@ -82,9 +80,7 @@ export class Ingredient {
 
   updateStorageType(storageType: StorageType): void {
     if (!STORAGE_TYPE_VALUES.includes(storageType)) {
-      throw new Error(
-        `Invalid storage type. Must be one of: ${STORAGE_TYPE_VALUES.join(', ')}`
-      );
+      throw new Error(`Invalid storage type. Must be one of: ${STORAGE_TYPE_VALUES.join(', ')}`);
     }
     this._storageType = storageType;
     this._updatedAt = new Date();

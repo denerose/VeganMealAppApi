@@ -4,9 +4,7 @@ import type { GetPlannedWeekUseCase } from '@/application/planned-week/get-plann
 import type { DeletePlannedWeekUseCase } from '@/application/planned-week/delete-planned-week.usecase';
 import type { PopulateLeftoversUseCase } from '@/application/planned-week/populate-leftovers.usecase';
 import {
-  type CreatePlannedWeekRequestDto,
   type PlannedWeekResponseDto,
-  type DayPlanResponseDto,
   validateCreatePlannedWeekRequest,
 } from '@/infrastructure/http/dtos/planned-week.dto';
 import { createErrorBody } from '@/infrastructure/http/dtos/common.dto';
@@ -17,24 +15,27 @@ export class PlannedWeekController {
     private readonly createPlannedWeekUseCase: CreatePlannedWeekUseCase,
     private readonly getPlannedWeekUseCase: GetPlannedWeekUseCase,
     private readonly deletePlannedWeekUseCase: DeletePlannedWeekUseCase,
-    private readonly populateLeftoversUseCase: PopulateLeftoversUseCase,
+    private readonly populateLeftoversUseCase: PopulateLeftoversUseCase
   ) {}
 
   async create(context: RouteContext): Promise<Response> {
     try {
-      const body = await context.request.json();
+      const body = (await context.request.json()) as Record<string, unknown>;
       const validation = validateCreatePlannedWeekRequest(body);
 
       if (!validation.valid) {
-        return new Response(JSON.stringify(createErrorBody('Validation failed', validation.errors)), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return new Response(
+          JSON.stringify(createErrorBody('Validation failed', validation.errors)),
+          {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
       }
 
       // TODO: Extract tenantId and weekStartDay from auth context
       const tenantId = context.request.headers.get('x-tenant-id') || 'temp-tenant-id';
-      const weekStartDay = 'MONDAY' as any; // TODO: Fetch from UserSettings
+      const weekStartDay = 'MONDAY' as const; // TODO: Fetch from UserSettings
 
       const plannedWeek = await this.createPlannedWeekUseCase.execute({
         tenantId,
@@ -62,14 +63,16 @@ export class PlannedWeekController {
       if (error instanceof Error && error.message.includes('already exists')) {
         return new Response(
           JSON.stringify(createErrorBody('Planned week already exists for this start date')),
-          { status: 400, headers: { 'Content-Type': 'application/json' } },
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
         );
       }
 
       if (error instanceof Error && error.message.includes('must align')) {
         return new Response(
-          JSON.stringify(createErrorBody('Starting date must align with configured week start day')),
-          { status: 400, headers: { 'Content-Type': 'application/json' } },
+          JSON.stringify(
+            createErrorBody('Starting date must align with configured week start day')
+          ),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
         );
       }
 

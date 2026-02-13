@@ -1,5 +1,4 @@
 import { describe, test, expect, beforeEach } from 'bun:test';
-import { getPrismaClient } from '@/infrastructure/database/prisma/client';
 import { PrismaIngredientRepository } from '@/infrastructure/database/repositories/prisma-ingredient.repository';
 import { Ingredient } from '@/domain/ingredient/ingredient.entity';
 import { StorageType } from '@/domain/shared/storage-type.enum';
@@ -12,7 +11,7 @@ const TEST_TENANT_ID = crypto.randomUUID();
 
 beforeEach(async () => {
   await resetDatabase();
-  
+
   // Create test tenant
   await prisma.tenant.create({
     data: {
@@ -149,22 +148,14 @@ describe('PrismaIngredientRepository', () => {
         await repository.create(ingredient, TEST_TENANT_ID);
       }
 
-      const result = await repository.findAll(
-        TEST_TENANT_ID,
-        undefined,
-        { limit: 10, offset: 0 }
-      );
+      const result = await repository.findAll(TEST_TENANT_ID, undefined, { limit: 10, offset: 0 });
 
       expect(result.items).toHaveLength(10);
       expect(result.total).toBe(15);
       expect(result.limit).toBe(10);
       expect(result.offset).toBe(0);
 
-      const page2 = await repository.findAll(
-        TEST_TENANT_ID,
-        undefined,
-        { limit: 10, offset: 10 }
-      );
+      const page2 = await repository.findAll(TEST_TENANT_ID, undefined, { limit: 10, offset: 10 });
 
       expect(page2.items).toHaveLength(5);
     });
@@ -259,9 +250,7 @@ describe('PrismaIngredientRepository', () => {
       const ingredient = Ingredient.create('Test Ingredient', StorageType.FRIDGE);
       const savedIngredient = await repository.create(ingredient, TEST_TENANT_ID);
 
-      await expect(
-        repository.delete(savedIngredient.id!, otherTenantId)
-      ).rejects.toThrow();
+      return expect(repository.delete(savedIngredient.id!, otherTenantId)).rejects.toThrow();
 
       const foundIngredient = await repository.findById(savedIngredient.id!, TEST_TENANT_ID);
       expect(foundIngredient).not.toBeNull();

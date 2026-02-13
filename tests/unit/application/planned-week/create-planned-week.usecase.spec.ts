@@ -31,37 +31,34 @@ class InMemoryPlannedWeekRepository implements PlannedWeekRepository {
     });
   }
 
-  async create(plannedWeek: PlannedWeek): Promise<PlannedWeek> {
+  create(plannedWeek: PlannedWeek): Promise<PlannedWeek> {
     const id = plannedWeek.props.id ?? crypto.randomUUID();
-    plannedWeek.props.id = id;
+    (plannedWeek.props as { id?: string }).id = id;
     this.weeks.set(id, plannedWeek);
     this.createdWeek = plannedWeek;
-    return plannedWeek;
+    return Promise.resolve(plannedWeek);
   }
 
-  async save(plannedWeek: PlannedWeek): Promise<PlannedWeek> {
+  save(plannedWeek: PlannedWeek): Promise<PlannedWeek> {
     if (!plannedWeek.props.id) {
       throw new Error('Cannot save planned week without identifier');
     }
     this.weeks.set(plannedWeek.props.id, plannedWeek);
-    return plannedWeek;
+    return Promise.resolve(plannedWeek);
   }
 
-  async findById(id: string, tenantId: string): Promise<PlannedWeek | null> {
+  findById(id: string, tenantId: string): Promise<PlannedWeek | null> {
     const week = this.weeks.get(id);
-    return week && week.props.tenantId === tenantId ? week : null;
+    return Promise.resolve(week && week.props.tenantId === tenantId ? week : null);
   }
 
-  async findByTenantAndStartDate(
-    tenantId: string,
-    startingDate: string,
-  ): Promise<PlannedWeek | null> {
+  findByTenantAndStartDate(tenantId: string, startingDate: string): Promise<PlannedWeek | null> {
     for (const week of this.weeks.values()) {
       if (week.props.tenantId === tenantId && week.props.startingDate === startingDate) {
-        return week;
+        return Promise.resolve(week);
       }
     }
-    return null;
+    return Promise.resolve(null);
   }
 
   async delete(id: string, tenantId: string): Promise<void> {
@@ -95,12 +92,12 @@ describe('Planned week use cases', () => {
       expect(plannedWeek.props.startingDate).toBe(defaultRequest.startingDate);
     });
 
-    it('prevents duplicate planned weeks for the same tenant and start date', async () => {
+    it('prevents duplicate planned weeks for the same tenant and start date', () => {
       repository = new InMemoryPlannedWeekRepository([createWeek()]);
       const useCase = new CreatePlannedWeekUseCase(repository);
 
-      await expect(useCase.execute(defaultRequest)).rejects.toThrow(
-        'planned week already exists for this start date',
+      return expect(useCase.execute(defaultRequest)).rejects.toThrow(
+        'planned week already exists for this start date'
       );
     });
   });
@@ -124,17 +121,17 @@ describe('Planned week use cases', () => {
       expect(updated.getDayPlan('2025-01-07').isLeftover).toBe(true);
     });
 
-    it('throws when planned week is missing', async () => {
+    it('throws when planned week is missing', () => {
       const useCase = new AssignMealToDayUseCase(repository);
 
-      await expect(
+      return expect(
         useCase.execute({
           tenantId: 'tenant-1',
           plannedWeekId: 'missing',
           date: '2025-01-06',
           slot: 'lunch',
           meal: { mealId: 'meal-1' },
-        }),
+        })
       ).rejects.toThrow('planned week not found');
     });
   });
@@ -158,9 +155,7 @@ describe('Planned week use cases', () => {
 
       await useCase.execute({ tenantId: 'tenant-1', plannedWeekId: 'week-1' });
 
-      await expect(
-        repository.findById('week-1', 'tenant-1'),
-      ).resolves.toBeNull();
+      return expect(repository.findById('week-1', 'tenant-1')).resolves.toBeNull();
     });
   });
 

@@ -23,4 +23,5 @@ const server = Bun.serve({
   fetch: fetchHandler,
 });
 
+// eslint-disable-next-line no-console -- server startup message
 console.log(`Vegan Meal Planning API listening on http://localhost:${server.port}`);

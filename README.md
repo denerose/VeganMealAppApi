@@ -46,6 +46,7 @@ cp .env.example .env
 
 # 5. Initialize database
 bun run db:migrate
+bun run db:seed          # Optional: load sample data for development
 
 # 6. Start development server
 bun run dev
@@ -101,11 +102,13 @@ Authorization: Bearer <jwt-token>
 ### Key Endpoints
 
 #### Planned Weeks
+
 - `POST /api/v1/planned-weeks` - Create a week
 - `GET /api/v1/planned-weeks/:weekId` - Get week details
 - `DELETE /api/v1/planned-weeks/:weekId` - Delete a week
 
 #### Meals
+
 - `GET /api/v1/meals` - List meals
 - `POST /api/v1/meals` - Create meal
 - `GET /api/v1/meals/:id` - Get meal details
@@ -115,12 +118,14 @@ Authorization: Bearer <jwt-token>
 - `GET /api/v1/meals/random` - Get random eligible meal
 
 #### Ingredients
+
 - `GET /api/v1/ingredients` - List ingredients
 - `POST /api/v1/ingredients` - Create ingredient
 - `PUT /api/v1/ingredients/:id` - Update ingredient
 - `DELETE /api/v1/ingredients/:id` - Delete ingredient
 
 #### User Settings
+
 - `GET /api/v1/user-settings` - Get preferences
 - `PUT /api/v1/user-settings` - Update preferences
 
@@ -205,19 +210,18 @@ bun run db:migrate:status
 bun run db:reset
 ```
 
-### Seed Data
+### Database Seeding
 
-Sample data can be populated for development:
+Development sample data is provided via a deterministic seed script. Use it to get realistic meals, ingredients, planned weeks, and user settings without manual data entry.
 
 ```bash
 bun run db:seed
 ```
 
-This creates:
-- Test tenant and users
-- Sample meals with qualities
-- Ingredients with storage types
-- User preferences
+- **Quick start**: [specs/002-dev-db-seed/quickstart.md](./specs/002-dev-db-seed/quickstart.md) — run seed, verify data, common commands
+- **Full guide**: [specs/002-dev-db-seed/SEEDING-GUIDE.md](./specs/002-dev-db-seed/SEEDING-GUIDE.md) — file structure, idempotency, troubleshooting
+
+The seed creates 2 tenants, 10 meals and 15 ingredients per tenant, user settings, and 2 planned weeks per tenant (~50% meal coverage). Re-running is idempotent (no duplicates).
 
 ## Deployment
 
