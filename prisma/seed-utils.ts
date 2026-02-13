@@ -215,9 +215,9 @@ export async function seedDatabase(prisma: PrismaClient): Promise<SeedResult> {
     logVerbose("Ensuring system user exists...");
     const systemUserId = await ensureSystemUser(prisma);
 
-    // 3-5. For each tenant: create ingredients, meals, and relationships
+    // 3-5. For each tenant: create ingredients, meals, and relationships (US2: tenant-scoped; no shared data)
     for (const tenant of SEED_TENANTS) {
-      // Create ingredients
+      // Create ingredients (15 per tenant; each receives tenantId; 30 total, no shared ingredients)
       logVerbose(`Creating ingredients for tenant ${tenant.id}...`);
       const ingredientMap: Record<string, string> = {};
 
@@ -243,7 +243,7 @@ export async function seedDatabase(prisma: PrismaClient): Promise<SeedResult> {
         logVerbose(`    Created ingredient: ${ingredientData.name}`);
       }
 
-      // Create meals with qualities
+      // Create meals with qualities (10 per tenant; each receives tenantId; no shared meals across tenants)
       logVerbose(`Creating meals for tenant ${tenant.id}...`);
       for (const mealData of SEED_MEALS) {
         const meal = await prisma.meal.create({

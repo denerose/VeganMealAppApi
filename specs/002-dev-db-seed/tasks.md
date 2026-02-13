@@ -60,7 +60,7 @@ This document breaks down the seed file implementation into concrete, actionable
 - [X] T011 [P] Implement error handling wrapper function (try-catch, exit codes) in `prisma/seed-utils.ts`
   - File: `prisma/seed-utils.ts`
   - Acceptance: Errors logged, process exits with code 1; successful runs exit with 0
-- [ ] T012 Create integration tests for all seed utilities in `tests/integration/seeding.integration.spec.ts`
+- [X] T012 Create integration tests for all seed utilities in `tests/integration/seeding.integration.spec.ts`
   - File: `tests/integration/seeding.integration.spec.ts`
   - Acceptance: 100% test coverage for all utility functions; deterministic UUID consistency verified
 
@@ -103,25 +103,25 @@ This document breaks down the seed file implementation into concrete, actionable
 
 ### Implementation Tasks
 
-- [ ] T019 [US1] Implement main seed orchestration function in `prisma/seeds.ts`
-  - File: `prisma/seeds.ts`
+- [X] T019 [US1] Implement main seed orchestration function in `prisma/seeds.ts`
+  - File: `prisma/seed.ts` (entry point; orchestration in `prisma/seed-utils.ts`)
   - Acceptance: Function initializes Prisma client, calls sub-functions for tenants/ingredients/meals/settings, logs progress, handles errors with exit codes
-- [ ] T020 [US1] Implement tenant and user settings seed logic
-  - File: `prisma/seeds.ts` (or helper function)
+- [X] T020 [US1] Implement tenant and user settings seed logic
+  - File: `prisma/seed-utils.ts` (seedDatabase)
   - Acceptance: Creates 2 tenants with settings; each tenant has 7-day quality preferences; timestamps valid (ISO 8601)
-- [ ] T021 [P] [US1] Implement ingredient seed logic
-  - File: `prisma/seeds.ts` (or helper function)
+- [X] T021 [P] [US1] Implement ingredient seed logic
+  - File: `prisma/seed-utils.ts` (seedDatabase)
   - Acceptance: Creates 15 vegan ingredients per tenant; distributed across storage types; no duplicates per tenant
-- [ ] T022 [P] [US1] Implement meal seed logic with quality flags
-  - File: `prisma/seeds.ts` (or helper function)
+- [X] T022 [P] [US1] Implement meal seed logic with quality flags
+  - File: `prisma/seed-utils.ts` (seedDatabase)
   - Acceptance: Creates 10 vegan meals per tenant; each with correct quality flags; 9 qualities covered; at least 5 meals have 5+ ingredients
-- [ ] T023 [P] [US1] Implement meal-ingredient relationship seeding
-  - File: `prisma/seeds.ts` (or helper function)
+- [X] T023 [P] [US1] Implement meal-ingredient relationship seeding
+  - File: `prisma/seed-utils.ts` (seedDatabase)
   - Acceptance: Links ingredients to meals; at least 5 meals have 5+ ingredients; FR-006 satisfied; no broken foreign keys
-- [ ] T024 [US1] Implement idempotency check and skip logic
-  - File: `prisma/seeds.ts`
+- [X] T024 [US1] Implement idempotency check and skip logic
+  - File: `prisma/seed-utils.ts` (seedDatabase)
   - Acceptance: Before seeding, checks for marker meal; if found, logs skip message and exits with 0; if not found, proceeds with seeding
-- [ ] T025 [US1] Create E2E test to verify seed output for US1
+- [X] T025 [US1] Create E2E test to verify seed output for US1
   - File: `tests/e2e/seeding.e2e.spec.ts`
   - Acceptance: Test runs seed, verifies meal count >=10, ingredient count >=15, user settings created; execution time <2 minutes; assertions pass
 
@@ -142,13 +142,13 @@ This document breaks down the seed file implementation into concrete, actionable
 
 ### Implementation Tasks
 
-- [ ] T026 [P] [US2] Implement tenant-scoped meal creation logic
-  - File: `prisma/seeds.ts` (or helper function)
+- [X] T026 [P] [US2] Implement tenant-scoped meal creation logic
+  - File: `prisma/seed-utils.ts` (seedDatabase)
   - Acceptance: Each meal in seedMeals() receives tenantId parameter; created meals have correct tenantId; no shared meals across tenants
-- [ ] T027 [P] [US2] Implement tenant-scoped ingredient creation logic
-  - File: `prisma/seeds.ts` (or helper function)
+- [X] T027 [P] [US2] Implement tenant-scoped ingredient creation logic
+  - File: `prisma/seed-utils.ts` (seedDatabase)
   - Acceptance: Each ingredient receives tenantId; all 15 ingredients created per tenant (30 total); no shared ingredients
-- [ ] T028 [US2] Create integration test to verify multi-tenant isolation
+- [X] T028 [US2] Create integration test to verify multi-tenant isolation
   - File: `tests/integration/seeding.integration.spec.ts`
   - Acceptance: Query Tenant-1 meals, verify all have tenantId=T1; query Tenant-2 meals, verify all have tenantId=T2; no overlap
 
@@ -312,10 +312,10 @@ Use this section to track progress:
 - [ ] T008-T018 Complete
 
 ### Phase 3: US1
-- [ ] T019-T025 Complete
+- [X] T019-T025 Complete
 
 ### Phase 4: US2
-- [ ] T026-T028 Complete
+- [X] T026-T028 Complete
 
 ### Phase 5: US3
 - [ ] T029-T031 Complete
