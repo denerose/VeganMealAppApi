@@ -1,7 +1,11 @@
 import type { PrismaClient, Prisma } from '@prisma/client';
 import { format, parseISO } from 'date-fns';
 
-import type { PlannedWeekRepository } from '@/domain/planned-week/planned-week.repository';
+import type {
+  PlannedWeekRepository,
+  PlannedWeekFilters,
+  PaginationOptions,
+} from '@/domain/planned-week/planned-week.repository';
 import {
   type MealAssignment,
   PlannedWeek,
@@ -154,6 +158,63 @@ export class PrismaPlannedWeekRepository implements PlannedWeekRepository {
       (plannedWeek.tenant.userSettings?.weekStartDay as WeekStartDay) ?? WeekStartDay.MONDAY;
 
     return this.toDomain(plannedWeek, weekStartDay);
+  }
+
+  async findAll(
+    tenantId: string,
+    filters?: PlannedWeekFilters,
+    pagination?: PaginationOptions
+  ): Promise<{
+    items: PlannedWeek[];
+    total: number;
+    limit: number;
+    offset: number;
+  }> {
+    const where: Prisma.PlannedWeekWhereInput = {
+      tenantId,
+    };
+
+    if (filters?.startDate || filters?.endDate) {
+      where.startingDate = {};
+      if (filters.startDate) {
+        where.startingDate.gte = parseISO(filters.startDate);
+      }
+      if (filters.endDate) {
+        where.startingDate.lte = parseISO(filters.endDate);
+      }
+    }
+
+    const [plannedWeeks, total] = await Promise.all([
+      this.prisma.plannedWeek.findMany({
+        where,
+        include: {
+          dayPlans: true,
+          tenant: {
+            include: {
+              userSettings: true,
+            },
+          },
+        },
+        skip: pagination?.offset ?? 0,
+        take: pagination?.limit ?? 20,
+        orderBy: {
+          startingDate: 'desc',
+        },
+      }),
+      this.prisma.plannedWeek.count({ where }),
+    ]);
+
+    return {
+      items: plannedWeeks.map(pw =>
+        this.toDomain(
+          pw,
+          (pw.tenant.userSettings?.weekStartDay as WeekStartDay) ?? WeekStartDay.MONDAY
+        )
+      ),
+      total,
+      limit: pagination?.limit ?? 20,
+      offset: pagination?.offset ?? 0,
+    };
   }
 
   async delete(id: string, tenantId: string): Promise<void> {

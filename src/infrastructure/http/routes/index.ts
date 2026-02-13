@@ -124,11 +124,13 @@ export const registerRoutes = (router: AppRouter, controllers: RouteControllers)
   const prefix = API_PREFIX;
 
   // Planned Weeks
+  router.get(`${prefix}/planned-weeks`, ctx => controllers.plannedWeek.list(ctx));
   router.post(`${prefix}/planned-weeks`, ctx => controllers.plannedWeek.create(ctx));
   router.get(`${prefix}/planned-weeks/:weekId`, ctx => controllers.plannedWeek.getById(ctx));
   router.delete(`${prefix}/planned-weeks/:weekId`, ctx => controllers.plannedWeek.delete(ctx));
 
   // Day Plans
+  router.get(`${prefix}/day-plans/:dayPlanId`, ctx => controllers.dayPlan.get(ctx));
   router.patch(`${prefix}/day-plans/:dayPlanId`, ctx => controllers.dayPlan.update(ctx));
 
   // Meals
@@ -159,7 +161,8 @@ export const registerRoutes = (router: AppRouter, controllers: RouteControllers)
 
   // User Settings
   if (controllers.userSettings) {
-    router.get(`${prefix}/user-settings`, ctx => controllers.userSettings.getUserSettings(ctx));
-    router.put(`${prefix}/user-settings`, ctx => controllers.userSettings.updateUserSettings(ctx));
+    const userSettings = controllers.userSettings;
+    router.get(`${prefix}/user-settings`, ctx => userSettings.getUserSettings(ctx));
+    router.put(`${prefix}/user-settings`, ctx => userSettings.updateUserSettings(ctx));
   }
 };
