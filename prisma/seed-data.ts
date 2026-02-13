@@ -335,15 +335,41 @@ export const SEED_USER_SETTINGS = [
   },
 ];
 
+/** getDay() result for each week start day (0=Sun, 1=Mon, ...) */
+const WEEK_START_DAY_INDEX: Record<string, number> = {
+  SUNDAY: 0,
+  MONDAY: 1,
+  TUESDAY: 2,
+  WEDNESDAY: 3,
+  THURSDAY: 4,
+  FRIDAY: 5,
+  SATURDAY: 6,
+};
+
 /**
- * Calculate next Monday from a given date
+ * Calculate the next occurrence of the given week start day from a date.
+ * Used so each tenant's planned weeks start on their weekStartDay (e.g. Monday vs Sunday).
+ *
+ * @param fromDate - Reference date (default: today)
+ * @param weekStartDay - Day name (e.g. "MONDAY", "SUNDAY")
+ * @returns Date of the start of the week (same day as weekStartDay, at start of day)
+ */
+export function getNextWeekStart(fromDate: Date = new Date(), weekStartDay: string): Date {
+  const date = new Date(fromDate);
+  date.setHours(0, 0, 0, 0);
+  const current = date.getDay();
+  const target = WEEK_START_DAY_INDEX[weekStartDay] ?? 1;
+  const daysUntil = (target - current + 7) % 7;
+  // If today is the target day, use today; otherwise advance to next occurrence
+  date.setDate(date.getDate() + (daysUntil === 0 ? 0 : daysUntil));
+  return date;
+}
+
+/**
+ * Calculate next Monday from a given date (convenience; equivalent to getNextWeekStart(d, "MONDAY"))
  */
 export function getNextMonday(fromDate: Date = new Date()): Date {
-  const date = new Date(fromDate);
-  const day = date.getDay();
-  const daysUntilMonday = day === 0 ? 1 : (8 - day) % 7 || 7;
-  date.setDate(date.getDate() + daysUntilMonday);
-  return date;
+  return getNextWeekStart(fromDate, 'MONDAY');
 }
 
 /**

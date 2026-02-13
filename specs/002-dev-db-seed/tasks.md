@@ -199,10 +199,10 @@ This document breaks down the seed file implementation into concrete, actionable
 
 ### Implementation Tasks
 
-- [ ] T032 [US4] Implement planned week seed logic (dates respect weekStartDay)
+- [X] T032 [US4] Implement planned week seed logic (dates respect weekStartDay)
   - File: `prisma/seeds.ts` (or helper function)
   - Acceptance: Creates 2 weeks per tenant; Week 1 starts next Monday; Week 2 starts +7 days; startingDate respects tenant's weekStartDay setting
-- [ ] T033 [P] [US4] Implement day plan seed logic with partial meal assignments
+- [X] T033 [P] [US4] Implement day plan seed logic with partial meal assignments
   - File: `prisma/seeds.ts` (or helper function)
   - Acceptance: Creates 7 day plans per week (14 total per tenant); ~50% coverage (7 meals across 14 slots); includes both lunch and dinner assignments; includes empty slots; dates are sequential
 - [ ] T034 [US4] Create E2E test for planned week structure
