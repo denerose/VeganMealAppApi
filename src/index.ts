@@ -13,7 +13,9 @@ const router = createHttpRouter();
 registerRoutes(router, {
   plannedWeek: container.resolve(TOKENS.PlannedWeekController),
   dayPlan: container.resolve(TOKENS.DayPlanController),
-  // meal: container.resolve(TOKENS.MealController), // TODO: Enable when repositories are implemented
+  meal: container.resolve(TOKENS.MealController),
+  ingredient: container.resolve(TOKENS.IngredientController),
+  userSettings: container.resolve(TOKENS.UserSettingsController),
 });
 
 const fetchHandler = withErrorHandling(request => router.handle(request));

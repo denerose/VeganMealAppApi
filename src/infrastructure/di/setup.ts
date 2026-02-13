@@ -20,6 +20,7 @@ import { GetPlannedWeekUseCase } from '@/application/planned-week/get-planned-we
 import { DeletePlannedWeekUseCase } from '@/application/planned-week/delete-planned-week.usecase';
 import { AssignMealToDayUseCase } from '@/application/planned-week/assign-meal-to-day.usecase';
 import { PopulateLeftoversUseCase } from '@/application/planned-week/populate-leftovers.usecase';
+import { ListPlannedWeeksUseCase } from '@/application/planned-week/list-planned-weeks.usecase';
 import { GetEligibleMealsUseCase } from '@/application/meal/get-eligible-meals.usecase';
 import { GetRandomMealUseCase } from '@/application/meal/get-random-meal.usecase';
 import { CreateMealUseCase } from '@/application/use-cases/create-meal.use-case';
@@ -61,6 +62,7 @@ export const TOKENS = {
   // Use Cases
   CreatePlannedWeekUseCase: createToken<CreatePlannedWeekUseCase>('CreatePlannedWeekUseCase'),
   GetPlannedWeekUseCase: createToken<GetPlannedWeekUseCase>('GetPlannedWeekUseCase'),
+  ListPlannedWeeksUseCase: createToken<ListPlannedWeeksUseCase>('ListPlannedWeeksUseCase'),
   DeletePlannedWeekUseCase: createToken<DeletePlannedWeekUseCase>('DeletePlannedWeekUseCase'),
   AssignMealToDayUseCase: createToken<AssignMealToDayUseCase>('AssignMealToDayUseCase'),
   PopulateLeftoversUseCase: createToken<PopulateLeftoversUseCase>('PopulateLeftoversUseCase'),
@@ -136,6 +138,12 @@ export const registerDependencies = (): void => {
   container.register(
     TOKENS.GetPlannedWeekUseCase,
     c => new GetPlannedWeekUseCase(c.resolve(TOKENS.PlannedWeekRepository)),
+    { singleton: true }
+  );
+
+  container.register(
+    TOKENS.ListPlannedWeeksUseCase,
+    c => new ListPlannedWeeksUseCase(c.resolve(TOKENS.PlannedWeekRepository)),
     { singleton: true }
   );
 
@@ -261,7 +269,8 @@ export const registerDependencies = (): void => {
         c.resolve(TOKENS.CreatePlannedWeekUseCase),
         c.resolve(TOKENS.GetPlannedWeekUseCase),
         c.resolve(TOKENS.DeletePlannedWeekUseCase),
-        c.resolve(TOKENS.PopulateLeftoversUseCase)
+        c.resolve(TOKENS.PopulateLeftoversUseCase),
+        c.resolve(TOKENS.ListPlannedWeeksUseCase)
       ),
     { singleton: true }
   );

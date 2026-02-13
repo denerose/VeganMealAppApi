@@ -3,6 +3,7 @@ import type { CreatePlannedWeekUseCase } from '@/application/planned-week/create
 import type { GetPlannedWeekUseCase } from '@/application/planned-week/get-planned-week.usecase';
 import type { DeletePlannedWeekUseCase } from '@/application/planned-week/delete-planned-week.usecase';
 import type { PopulateLeftoversUseCase } from '@/application/planned-week/populate-leftovers.usecase';
+import type { ListPlannedWeeksUseCase } from '@/application/planned-week/list-planned-weeks.usecase';
 import {
   type PlannedWeekResponseDto,
   validateCreatePlannedWeekRequest,
@@ -15,7 +16,8 @@ export class PlannedWeekController {
     private readonly createPlannedWeekUseCase: CreatePlannedWeekUseCase,
     private readonly getPlannedWeekUseCase: GetPlannedWeekUseCase,
     private readonly deletePlannedWeekUseCase: DeletePlannedWeekUseCase,
-    private readonly populateLeftoversUseCase: PopulateLeftoversUseCase
+    private readonly populateLeftoversUseCase: PopulateLeftoversUseCase,
+    private readonly listPlannedWeeksUseCase: ListPlannedWeeksUseCase
   ) {}
 
   async create(context: RouteContext): Promise<Response> {
@@ -77,6 +79,62 @@ export class PlannedWeekController {
       }
 
       console.error('Error creating planned week:', error);
+      return new Response(JSON.stringify(createErrorBody('Internal server error')), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  async list(context: RouteContext): Promise<Response> {
+    try {
+      // TODO: Extract tenantId from auth context
+      const tenantId = context.request.headers.get('x-tenant-id') || 'temp-tenant-id';
+
+      const url = new URL(context.request.url);
+      const filters: { startDate?: string; endDate?: string } = {};
+
+      const startDate = url.searchParams.get('startDate');
+      if (startDate) {
+        filters.startDate = startDate;
+      }
+
+      const endDate = url.searchParams.get('endDate');
+      if (endDate) {
+        filters.endDate = endDate;
+      }
+
+      const pagination = {
+        limit: url.searchParams.get('limit') ? parseInt(url.searchParams.get('limit')!, 10) : 20,
+        offset: url.searchParams.get('offset') ? parseInt(url.searchParams.get('offset')!, 10) : 0,
+      };
+
+      const result = await this.listPlannedWeeksUseCase.execute({
+        tenantId,
+        filters: Object.keys(filters).length > 0 ? filters : undefined,
+        pagination,
+      });
+
+      return new Response(
+        JSON.stringify({
+          data: result.items.map(snapshot => {
+            const plannedWeek = PlannedWeek.rehydrate(snapshot);
+            return this.toResponseDto(plannedWeek);
+          }),
+          pagination: {
+            offset: result.offset,
+            limit: result.limit,
+            total: result.total,
+            hasMore: result.offset + result.items.length < result.total,
+          },
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    } catch (error) {
+      console.error('Error listing planned weeks:', error);
       return new Response(JSON.stringify(createErrorBody('Internal server error')), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
