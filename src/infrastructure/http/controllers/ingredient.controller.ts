@@ -2,6 +2,8 @@ import { CreateIngredientUseCase } from '@/application/use-cases/create-ingredie
 import { ListIngredientsUseCase } from '@/application/use-cases/list-ingredients.use-case';
 import { UpdateIngredientUseCase } from '@/application/use-cases/update-ingredient.use-case';
 import { DeleteIngredientUseCase } from '@/application/use-cases/delete-ingredient.use-case';
+import type { IngredientFilters } from '@/domain/ingredient/ingredient.repository';
+import { StorageType, STORAGE_TYPE_VALUES } from '@/domain/shared/storage-type.enum';
 import {
   validateCreateIngredientRequest,
   validateUpdateIngredientRequest,
@@ -9,6 +11,10 @@ import {
 } from '../dtos/ingredient.dto';
 import type { RouteContext } from '@/infrastructure/http/routes';
 import { createErrorBody } from '@/infrastructure/http/dtos/common.dto';
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 export class IngredientController {
   constructor(
@@ -20,7 +26,7 @@ export class IngredientController {
 
   async create(context: RouteContext): Promise<Response> {
     try {
-      const body = await context.request.json();
+      const body = (await context.request.json()) as unknown;
       const dto = validateCreateIngredientRequest(body);
 
       // TODO: Extract tenantId from auth context
@@ -35,9 +41,9 @@ export class IngredientController {
         status: 201,
         headers: { 'Content-Type': 'application/json' },
       });
-    } catch (error: any) {
-      if (error.message.includes('Invalid request')) {
-        return new Response(JSON.stringify(createErrorBody(error.message)), {
+    } catch (error: unknown) {
+      if (errorMessage(error).includes('Invalid request')) {
+        return new Response(JSON.stringify(createErrorBody(errorMessage(error))), {
           status: 400,
           headers: { 'Content-Type': 'application/json' },
         });
@@ -56,11 +62,16 @@ export class IngredientController {
       const tenantId = context.request.headers.get('x-tenant-id') || 'temp-tenant-id';
 
       const url = new URL(context.request.url);
-      const filters: any = {};
+      const filters: IngredientFilters = {};
 
-      if (url.searchParams.get('name')) filters.name = url.searchParams.get('name');
-      if (url.searchParams.get('storageType')) filters.storageType = url.searchParams.get('storageType');
-      if (url.searchParams.get('isStaple')) filters.isStaple = url.searchParams.get('isStaple') === 'true';
+      const name = url.searchParams.get('name');
+      if (name) filters.name = name;
+      const storageTypeParam = url.searchParams.get('storageType');
+      if (storageTypeParam && STORAGE_TYPE_VALUES.includes(storageTypeParam as StorageType)) {
+        filters.storageType = storageTypeParam as StorageType;
+      }
+      const isStapleParam = url.searchParams.get('isStaple');
+      if (isStapleParam !== null) filters.isStaple = isStapleParam === 'true';
 
       const pagination = {
         limit: url.searchParams.get('limit') ? parseInt(url.searchParams.get('limit')!, 10) : 50,
@@ -85,7 +96,7 @@ export class IngredientController {
           headers: { 'Content-Type': 'application/json' },
         }
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error listing ingredients:', error);
       return new Response(JSON.stringify(createErrorBody('Internal server error')), {
         status: 500,
@@ -96,8 +107,14 @@ export class IngredientController {
 
   async update(context: RouteContext): Promise<Response> {
     try {
-      const id = context.params.id;
-      const body = await context.request.json();
+      const id = context.params.id ?? undefined;
+      if (!id) {
+        return new Response(JSON.stringify(createErrorBody('Ingredient ID is required')), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      const body = (await context.request.json()) as unknown;
       const dto = validateUpdateIngredientRequest(body);
 
       // TODO: Extract tenantId from auth context
@@ -113,15 +130,16 @@ export class IngredientController {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
-    } catch (error: any) {
-      if (error.message.includes('not found')) {
-        return new Response(JSON.stringify(createErrorBody(error.message)), {
+    } catch (error: unknown) {
+      const msg = errorMessage(error);
+      if (msg.includes('not found')) {
+        return new Response(JSON.stringify(createErrorBody(msg)), {
           status: 404,
           headers: { 'Content-Type': 'application/json' },
         });
       }
-      if (error.message.includes('Invalid request')) {
-        return new Response(JSON.stringify(createErrorBody(error.message)), {
+      if (msg.includes('Invalid request')) {
+        return new Response(JSON.stringify(createErrorBody(msg)), {
           status: 400,
           headers: { 'Content-Type': 'application/json' },
         });
@@ -136,7 +154,13 @@ export class IngredientController {
 
   async delete(context: RouteContext): Promise<Response> {
     try {
-      const id = context.params.id;
+      const id = context.params.id ?? undefined;
+      if (!id) {
+        return new Response(JSON.stringify(createErrorBody('Ingredient ID is required')), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
 
       // TODO: Extract tenantId from auth context
       const tenantId = context.request.headers.get('x-tenant-id') || 'temp-tenant-id';
@@ -147,9 +171,9 @@ export class IngredientController {
       });
 
       return new Response(null, { status: 204 });
-    } catch (error: any) {
-      if (error.message.includes('not found')) {
-        return new Response(JSON.stringify(createErrorBody(error.message)), {
+    } catch (error: unknown) {
+      if (errorMessage(error).includes('not found')) {
+        return new Response(JSON.stringify(createErrorBody(errorMessage(error))), {
           status: 404,
           headers: { 'Content-Type': 'application/json' },
         });

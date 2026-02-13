@@ -1,5 +1,6 @@
+import type { MealSummary } from '@/domain/meal/meal.repository';
 import type { MealSlot } from '@/domain/planned-week/planned-week.entity';
-import type { GetEligibleMealsUseCase, MealSummary } from './get-eligible-meals.usecase';
+import type { GetEligibleMealsUseCase } from './get-eligible-meals.usecase';
 
 export type GetRandomMealRequest = {
   tenantId: string;

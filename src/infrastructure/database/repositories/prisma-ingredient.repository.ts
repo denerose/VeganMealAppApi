@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@prisma/client';
+import type { PrismaClient, Prisma, Ingredient as PrismaIngredient } from '@prisma/client';
 import { Ingredient, type IngredientId } from '@/domain/ingredient/ingredient.entity';
 import type {
   IngredientRepository,
@@ -47,7 +47,7 @@ export class PrismaIngredientRepository implements IngredientRepository {
     filters?: IngredientFilters,
     pagination?: PaginationOptions
   ): Promise<PaginatedResult<Ingredient>> {
-    const where: any = {
+    const where: Prisma.IngredientWhereInput = {
       tenantId,
     };
 
@@ -81,7 +81,7 @@ export class PrismaIngredientRepository implements IngredientRepository {
     ]);
 
     return {
-      items: ingredients.map((ingredient) => this.toDomain(ingredient)),
+      items: ingredients.map(ingredient => this.toDomain(ingredient)),
       total,
       limit: pagination?.limit ?? 50,
       offset: pagination?.offset ?? 0,
@@ -116,7 +116,7 @@ export class PrismaIngredientRepository implements IngredientRepository {
     });
   }
 
-  private toDomain(prismaIngredient: any): Ingredient {
+  private toDomain(prismaIngredient: PrismaIngredient): Ingredient {
     return Ingredient.rehydrate({
       id: prismaIngredient.id,
       name: prismaIngredient.ingredientName,

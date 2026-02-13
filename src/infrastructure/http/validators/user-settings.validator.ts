@@ -2,97 +2,99 @@ import { WeekStartDay, WEEK_START_DAY_VALUES } from '@/domain/shared/week-start-
 import { DayOfWeek, DAY_OF_WEEK_VALUES } from '@/domain/shared/day-of-week.enum';
 import type { UpdateUserSettingsDto, DailyPreferencesDto } from './user-settings.dto';
 
-export function validateUpdateUserSettingsDto(data: any): UpdateUserSettingsDto {
-  if (!data || typeof data !== 'object') {
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unnecessary-type-assertion -- validated input from request body */
+function isRecord(x: unknown): x is Record<string, unknown> {
+  return typeof x === 'object' && x !== null;
+}
+
+export function validateUpdateUserSettingsDto(data: unknown): UpdateUserSettingsDto {
+  if (!isRecord(data)) {
     throw new Error('Request body must be an object');
   }
 
   const result: UpdateUserSettingsDto = {};
+  // data is Record<string, unknown> after isRecord guard
+  const obj: Record<string, unknown> = data;
 
   // Validate weekStartDay if provided
-  if (data.weekStartDay !== undefined) {
-    if (typeof data.weekStartDay !== 'string') {
+  const weekStartDayVal: unknown = obj['weekStartDay'];
+  if (weekStartDayVal !== undefined) {
+    if (typeof weekStartDayVal !== 'string') {
       throw new Error('weekStartDay must be a string');
     }
 
-    if (!WEEK_START_DAY_VALUES.includes(data.weekStartDay as WeekStartDay)) {
-      throw new Error(
-        `weekStartDay must be one of: ${WEEK_START_DAY_VALUES.join(', ')}`
-      );
+    if (!WEEK_START_DAY_VALUES.includes(weekStartDayVal as WeekStartDay)) {
+      throw new Error(`weekStartDay must be one of: ${WEEK_START_DAY_VALUES.join(', ')}`);
     }
 
-    result.weekStartDay = data.weekStartDay as WeekStartDay;
+    result.weekStartDay = weekStartDayVal as WeekStartDay;
   }
 
   // Validate dailyPreferences if provided
-  if (data.dailyPreferences !== undefined) {
-    if (!Array.isArray(data.dailyPreferences)) {
+  const dailyPrefsVal: unknown = obj['dailyPreferences'];
+  if (dailyPrefsVal !== undefined) {
+    if (!Array.isArray(dailyPrefsVal)) {
       throw new Error('dailyPreferences must be an array');
     }
 
-    if (data.dailyPreferences.length !== 7) {
+    if (dailyPrefsVal.length !== 7) {
       throw new Error('dailyPreferences must contain exactly 7 entries');
     }
 
     const validatedPreferences: DailyPreferencesDto[] = [];
     const seenDays = new Set<string>();
 
-    for (const pref of data.dailyPreferences) {
-      if (!pref || typeof pref !== 'object') {
+    for (const pref of dailyPrefsVal) {
+      if (!isRecord(pref)) {
         throw new Error('Each daily preference must be an object');
       }
 
-      // Validate day
-      if (typeof pref.day !== 'string') {
+      const dayVal: unknown = (pref as Record<string, unknown>)['day'];
+      if (typeof dayVal !== 'string') {
         throw new Error('Each daily preference must have a day field');
       }
 
-      if (!DAY_OF_WEEK_VALUES.includes(pref.day as DayOfWeek)) {
-        throw new Error(
-          `day must be one of: ${DAY_OF_WEEK_VALUES.join(', ')}`
-        );
+      if (!DAY_OF_WEEK_VALUES.includes(dayVal as DayOfWeek)) {
+        throw new Error(`day must be one of: ${DAY_OF_WEEK_VALUES.join(', ')}`);
       }
 
-      if (seenDays.has(pref.day)) {
-        throw new Error(`Duplicate day found: ${pref.day}`);
+      if (seenDays.has(dayVal)) {
+        throw new Error(`Duplicate day found: ${dayVal}`);
       }
-      seenDays.add(pref.day);
+      seenDays.add(dayVal);
 
-      // Validate preferences object
-      if (!pref.preferences || typeof pref.preferences !== 'object') {
+      const prefsVal: unknown = (pref as Record<string, unknown>)['preferences'];
+      if (!prefsVal || typeof prefsVal !== 'object') {
         throw new Error('Each daily preference must have a preferences object');
       }
 
+      const prefsObj = prefsVal as Record<string, unknown>;
       const validQualityKeys = ['isCreamy', 'isAcidic', 'greenVeg', 'isEasyToMake', 'needsPrep'];
-      const invalidKeys = Object.keys(pref.preferences).filter(
-        (key) => !validQualityKeys.includes(key)
+      const invalidKeys = Object.keys(prefsObj).filter(
+        (key: string) => !validQualityKeys.includes(key)
       );
 
       if (invalidKeys.length > 0) {
-        throw new Error(
-          `Invalid quality preference keys: ${invalidKeys.join(', ')}`
-        );
+        throw new Error(`Invalid quality preference keys: ${invalidKeys.join(', ')}`);
       }
 
       // Validate boolean values
-      for (const [key, value] of Object.entries(pref.preferences)) {
+      for (const [key, value] of Object.entries(prefsObj)) {
         if (value !== undefined && typeof value !== 'boolean') {
           throw new Error(`Quality preference ${key} must be a boolean`);
         }
       }
 
       validatedPreferences.push({
-        day: pref.day as DayOfWeek,
-        preferences: pref.preferences,
+        day: dayVal as DayOfWeek,
+        preferences: prefsObj as DailyPreferencesDto['preferences'],
       });
     }
 
     // Verify all 7 days are present
-    const missingDays = DAY_OF_WEEK_VALUES.filter((day) => !seenDays.has(day));
+    const missingDays = DAY_OF_WEEK_VALUES.filter((day: DayOfWeek) => !seenDays.has(day));
     if (missingDays.length > 0) {
-      throw new Error(
-        `Missing days in dailyPreferences: ${missingDays.join(', ')}`
-      );
+      throw new Error(`Missing days in dailyPreferences: ${missingDays.join(', ')}`);
     }
 
     result.dailyPreferences = validatedPreferences;

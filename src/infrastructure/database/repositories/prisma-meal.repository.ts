@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@prisma/client';
+import type { PrismaClient, Prisma } from '@prisma/client';
 import { Meal, type MealId } from '@/domain/meal/meal.entity';
 import type {
   MealRepository,
@@ -8,41 +8,44 @@ import type {
   MealQualitiesFilter,
   MealSummary,
 } from '@/domain/meal/meal.repository';
-import { MealQualities } from '@/domain/meal/meal-qualities.vo';
+
+type MealWithQualities = Prisma.MealGetPayload<{ include: { qualities: true } }>;
+type MealWithQualitiesAndIngredients = Prisma.MealGetPayload<{
+  include: { qualities: true; ingredients: true };
+}>;
 
 export class PrismaMealRepository implements MealRepository {
   constructor(private prisma: PrismaClient) {}
 
-  async findByQualities(
-    tenantId: string,
-    filter: MealQualitiesFilter
-  ): Promise<MealSummary[]> {
-    const where: any = { tenantId };
+  async findByQualities(tenantId: string, filter: MealQualitiesFilter): Promise<MealSummary[]> {
+    const where: Prisma.MealWhereInput = { tenantId };
     if (filter.isArchived !== undefined) {
       where.isArchived = filter.isArchived;
     } else {
       where.isArchived = false;
     }
     where.qualities = {};
-    [
-      'isDinner',
-      'isLunch',
-      'isCreamy',
-      'isAcidic',
-      'greenVeg',
-      'makesLunch',
-      'isEasyToMake',
-      'needsPrep',
-    ].forEach((key) => {
-      if (filter[key as keyof typeof filter] !== undefined) {
-        where.qualities[key] = filter[key as keyof typeof filter];
+    (
+      [
+        'isDinner',
+        'isLunch',
+        'isCreamy',
+        'isAcidic',
+        'greenVeg',
+        'makesLunch',
+        'isEasyToMake',
+        'needsPrep',
+      ] as const
+    ).forEach(key => {
+      if (filter[key] !== undefined) {
+        (where.qualities as Record<string, boolean>)[key] = filter[key];
       }
     });
     const meals = await this.prisma.meal.findMany({
       where,
       include: { qualities: true },
     });
-    return meals.map((meal: any) => ({
+    return meals.map((meal: MealWithQualities) => ({
       id: meal.id,
       mealName: meal.mealName,
       qualities: {
@@ -86,7 +89,7 @@ export class PrismaMealRepository implements MealRepository {
           },
         },
         ingredients: {
-          create: snapshot.ingredientIds.map((ingredientId) => ({
+          create: snapshot.ingredientIds.map(ingredientId => ({
             ingredientId,
           })),
         },
@@ -120,7 +123,7 @@ export class PrismaMealRepository implements MealRepository {
     filters?: MealFilters,
     pagination?: PaginationOptions
   ): Promise<PaginatedResult<Meal>> {
-    const where: any = {
+    const where: Prisma.MealWhereInput = {
       tenantId,
     };
 
@@ -140,49 +143,49 @@ export class PrismaMealRepository implements MealRepository {
       // Quality filters
       if (filters.isDinner !== undefined) {
         where.qualities = {
-          ...where.qualities,
+          ...(where.qualities as object),
           isDinner: filters.isDinner,
         };
       }
       if (filters.isLunch !== undefined) {
         where.qualities = {
-          ...where.qualities,
+          ...(where.qualities as object),
           isLunch: filters.isLunch,
         };
       }
       if (filters.isCreamy !== undefined) {
         where.qualities = {
-          ...where.qualities,
+          ...(where.qualities as object),
           isCreamy: filters.isCreamy,
         };
       }
       if (filters.isAcidic !== undefined) {
         where.qualities = {
-          ...where.qualities,
+          ...(where.qualities as object),
           isAcidic: filters.isAcidic,
         };
       }
       if (filters.greenVeg !== undefined) {
         where.qualities = {
-          ...where.qualities,
+          ...(where.qualities as object),
           greenVeg: filters.greenVeg,
         };
       }
       if (filters.makesLunch !== undefined) {
         where.qualities = {
-          ...where.qualities,
+          ...(where.qualities as object),
           makesLunch: filters.makesLunch,
         };
       }
       if (filters.isEasyToMake !== undefined) {
         where.qualities = {
-          ...where.qualities,
+          ...(where.qualities as object),
           isEasyToMake: filters.isEasyToMake,
         };
       }
       if (filters.needsPrep !== undefined) {
         where.qualities = {
-          ...where.qualities,
+          ...(where.qualities as object),
           needsPrep: filters.needsPrep,
         };
       }
@@ -205,7 +208,7 @@ export class PrismaMealRepository implements MealRepository {
     ]);
 
     return {
-      items: meals.map((meal) => this.toDomain(meal)),
+      items: meals.map((meal: MealWithQualitiesAndIngredients) => this.toDomain(meal)),
       total,
       limit: pagination?.limit ?? 50,
       offset: pagination?.offset ?? 0,
@@ -215,7 +218,7 @@ export class PrismaMealRepository implements MealRepository {
   async save(meal: Meal, tenantId: string): Promise<Meal> {
     const snapshot = meal.toSnapshot();
 
-    await this.prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async tx => {
       // Update meal
       await tx.meal.update({
         where: {
@@ -269,7 +272,7 @@ export class PrismaMealRepository implements MealRepository {
 
       if (snapshot.ingredientIds.length > 0) {
         await tx.mealIngredient.createMany({
-          data: snapshot.ingredientIds.map((ingredientId) => ({
+          data: snapshot.ingredientIds.map(ingredientId => ({
             mealId: snapshot.id,
             ingredientId,
           })),
@@ -300,7 +303,7 @@ export class PrismaMealRepository implements MealRepository {
     });
   }
 
-  private toDomain(prismaMeal: any): Meal {
+  private toDomain(prismaMeal: MealWithQualitiesAndIngredients): Meal {
     return Meal.rehydrate({
       id: prismaMeal.id,
       name: prismaMeal.mealName,
@@ -314,7 +317,7 @@ export class PrismaMealRepository implements MealRepository {
         isEasyToMake: prismaMeal.qualities?.isEasyToMake ?? false,
         needsPrep: prismaMeal.qualities?.needsPrep ?? false,
       },
-      ingredientIds: prismaMeal.ingredients?.map((mi: any) => mi.ingredientId) ?? [],
+      ingredientIds: prismaMeal.ingredients?.map(mi => mi.ingredientId) ?? [],
       archivedAt: prismaMeal.deletedAt,
       createdAt: prismaMeal.createdAt,
       updatedAt: prismaMeal.updatedAt,

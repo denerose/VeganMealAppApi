@@ -1,6 +1,4 @@
 import { describe, test, expect } from 'bun:test';
-import { WeekStartDay } from '@/domain/shared/week-start-day.enum';
-import { DayOfWeek } from '@/domain/shared/day-of-week.enum';
 
 describe('UserSettings entity', () => {
   describe('Week start day validation', () => {

@@ -1,3 +1,4 @@
+import type { IngredientSnapshot } from '@/domain/ingredient/ingredient.entity';
 import { StorageType, STORAGE_TYPE_VALUES } from '@/domain/shared/storage-type.enum';
 
 export type CreateIngredientRequestDto = {
@@ -28,7 +29,14 @@ export type PaginatedIngredientsResponseDto = {
   offset: number;
 };
 
-export function validateCreateIngredientRequest(data: any): CreateIngredientRequestDto {
+function isRecord(x: unknown): x is Record<string, unknown> {
+  return typeof x === 'object' && x !== null;
+}
+
+export function validateCreateIngredientRequest(data: unknown): CreateIngredientRequestDto {
+  if (!isRecord(data)) {
+    throw new Error('Invalid request: body must be an object');
+  }
   if (!data.name || typeof data.name !== 'string') {
     throw new Error('Invalid request: name is required and must be a string');
   }
@@ -58,7 +66,10 @@ export function validateCreateIngredientRequest(data: any): CreateIngredientRequ
   return request;
 }
 
-export function validateUpdateIngredientRequest(data: any): UpdateIngredientRequestDto {
+export function validateUpdateIngredientRequest(data: unknown): UpdateIngredientRequestDto {
+  if (!isRecord(data)) {
+    throw new Error('Invalid request: body must be an object');
+  }
   const request: UpdateIngredientRequestDto = {};
 
   if (data.name !== undefined) {
@@ -90,7 +101,7 @@ export function validateUpdateIngredientRequest(data: any): UpdateIngredientRequ
   return request;
 }
 
-export function toIngredientResponseDto(snapshot: any): IngredientResponseDto {
+export function toIngredientResponseDto(snapshot: IngredientSnapshot): IngredientResponseDto {
   return {
     id: snapshot.id,
     name: snapshot.name,

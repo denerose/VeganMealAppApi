@@ -1,9 +1,8 @@
-import type { PrismaClient } from '@prisma/client';
+import type { PrismaClient, UserSettings as PrismaUserSettings } from '@prisma/client';
 import type { UserSettingsRepository } from '@/domain/user/user-settings.repository';
 import type { UserSettings, DailyPreferences } from '@/domain/user/user-settings.entity';
 import { UserSettings as UserSettingsEntity } from '@/domain/user/user-settings.entity';
 import { WeekStartDay } from '@/domain/shared/week-start-day.enum';
-import { DayOfWeek } from '@/domain/shared/day-of-week.enum';
 
 export class PrismaUserSettingsRepository implements UserSettingsRepository {
   constructor(private prisma: PrismaClient) {}
@@ -30,7 +29,7 @@ export class PrismaUserSettingsRepository implements UserSettingsRepository {
       data: {
         tenantId,
         weekStartDay: settings.weekStartDay,
-        dailyPreferences: settings.dailyPreferences as any, // Prisma Json type
+        dailyPreferences: settings.dailyPreferences as PrismaUserSettings['dailyPreferences'],
       },
     });
 
@@ -53,7 +52,7 @@ export class PrismaUserSettingsRepository implements UserSettingsRepository {
       where: { id: settingsId },
       data: {
         weekStartDay: settings.weekStartDay,
-        dailyPreferences: settings.dailyPreferences as any, // Prisma Json type
+        dailyPreferences: settings.dailyPreferences as PrismaUserSettings['dailyPreferences'],
         updatedAt: settings.updatedAt,
       },
     });
@@ -61,7 +60,7 @@ export class PrismaUserSettingsRepository implements UserSettingsRepository {
     return this.mapToEntity(dbSettings);
   }
 
-  private mapToEntity(dbSettings: any): UserSettings {
+  private mapToEntity(dbSettings: PrismaUserSettings): UserSettings {
     return UserSettingsEntity.rehydrate({
       id: dbSettings.id,
       weekStartDay: dbSettings.weekStartDay as WeekStartDay,

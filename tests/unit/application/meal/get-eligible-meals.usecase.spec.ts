@@ -13,9 +13,9 @@ import { DayOfWeek } from '@/domain/shared/day-of-week.enum';
 class InMemoryMealRepository implements MealRepository {
   public lastFilter: MealFilter | null = null;
 
-  async findByQualities(_tenantId: string, filter: MealFilter): Promise<MealSummary[]> {
+  findByQualities(_tenantId: string, filter: MealFilter): Promise<MealSummary[]> {
     this.lastFilter = filter;
-    return [
+    return Promise.resolve([
       {
         id: 'meal-1',
         mealName: 'Test Meal',
@@ -30,15 +30,15 @@ class InMemoryMealRepository implements MealRepository {
           needsPrep: false,
         },
       },
-    ];
+    ]);
   }
 }
 
 class InMemoryUserSettingsRepository implements UserSettingsRepository {
   constructor(private readonly settings: UserSettings | null) {}
 
-  async findByTenantId(): Promise<UserSettings | null> {
-    return this.settings;
+  findByTenantId(): Promise<UserSettings | null> {
+    return Promise.resolve(this.settings);
   }
 }
 
@@ -57,27 +57,27 @@ const defaultSettings: UserSettings = {
 };
 
 describe('GetEligibleMealsUseCase', () => {
-  it('throws when provided date is invalid', async () => {
+  it('throws when provided date is invalid', () => {
     const mealRepo = new InMemoryMealRepository();
     const settingsRepo = new InMemoryUserSettingsRepository(defaultSettings);
     const useCase = new GetEligibleMealsUseCase(mealRepo, settingsRepo);
 
-    await expect(
+    return expect(
       useCase.execute({
         tenantId: 'tenant-1',
         date: 'invalid-date',
         mealType: 'lunch',
-      }),
+      })
     ).rejects.toThrow('invalid date supplied');
   });
 
-  it('throws when user settings are missing', async () => {
+  it('throws when user settings are missing', () => {
     const mealRepo = new InMemoryMealRepository();
     const settingsRepo = new InMemoryUserSettingsRepository(null);
     const useCase = new GetEligibleMealsUseCase(mealRepo, settingsRepo);
 
-    await expect(
-      useCase.execute({ tenantId: 'tenant-1', date: '2025-01-06', mealType: 'lunch' }),
+    return expect(
+      useCase.execute({ tenantId: 'tenant-1', date: '2025-01-06', mealType: 'lunch' })
     ).rejects.toThrow('user settings not found');
   });
 

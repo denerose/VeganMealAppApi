@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { format, addDays, startOfDay } from 'date-fns';
 
 import { PrismaPlannedWeekRepository } from '@/infrastructure/database/repositories/prisma-planned-week.repository';
 import { PlannedWeek } from '@/domain/planned-week/planned-week.entity';
