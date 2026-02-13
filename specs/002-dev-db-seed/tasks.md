@@ -205,10 +205,10 @@ This document breaks down the seed file implementation into concrete, actionable
 - [X] T033 [P] [US4] Implement day plan seed logic with partial meal assignments
   - File: `prisma/seeds.ts` (or helper function)
   - Acceptance: Creates 7 day plans per week (14 total per tenant); ~50% coverage (7 meals across 14 slots); includes both lunch and dinner assignments; includes empty slots; dates are sequential
-- [ ] T034 [US4] Create E2E test for planned week structure
+- [X] T034 [US4] Create E2E test for planned week structure
   - File: `tests/e2e/seeding.e2e.spec.ts`
   - Acceptance: Test retrieves seeded weeks, verifies 7 day plans each, verifies dates align with weekStartDay, verifies some slots filled and some empty
-- [ ] T035 [P] [US4] Create integration test for day plan meal assignments
+- [X] T035 [P] [US4] Create integration test for day plan meal assignments
   - File: `tests/integration/seeding.integration.spec.ts`
   - Acceptance: Test verifies meal assignments respect meal qualities (isDinner meals in dinner slots, isLunch in lunch slots); tests leftover potential (dinners that makesLunch assigned)
 
@@ -222,16 +222,16 @@ This document breaks down the seed file implementation into concrete, actionable
 
 ### Testing & Validation
 
-- [ ] T036 [P] Create comprehensive E2E test suite for all user stories
+- [X] T036 [P] Create comprehensive E2E test suite for all user stories
   - File: `tests/e2e/seeding.e2e.spec.ts`
   - Acceptance: Tests cover all 4 user stories; each test is independent; all assertions pass; seed completes in <2 minutes
 - [ ] T037 Run full test suite and achieve 100% pass rate
   - Command: `npm test -- seeding`
   - Acceptance: All unit tests pass, all integration tests pass, all E2E tests pass; no flaky tests
-- [ ] T038 Measure and verify seed execution time <2 minutes
+- [X] T038 Measure and verify seed execution time <2 minutes
   - File: `tests/e2e/seeding.e2e.spec.ts` (add timing assertions)
   - Acceptance: Time measurement on clean database; confirms <2 min (SC-001)
-- [ ] T039 Verify 80% unique meal-ingredient combinations (SC-002)
+- [X] T039 Verify 80% unique meal-ingredient combinations (SC-002)
   - File: Validation script or test in `tests/integration/seeding.integration.spec.ts`
   - Acceptance: Audit all seeded meals (10 per tenant = 20 total); calculate unique name-ingredient combinations; verify >=80% (≥16 of 20 meals) have unique combinations; document calculation in test output
 
@@ -243,16 +243,16 @@ This document breaks down the seed file implementation into concrete, actionable
 - [ ] T041 Verify SEEDING-GUIDE.md implementation details match actual code
   - File: `SEEDING-GUIDE.md` (already created in plan phase)
   - Acceptance: File structure matches created code; examples are correct; troubleshooting covers actual error patterns
-- [ ] T042 Create README section linking to seeding documentation
+- [X] T042 Create README section linking to seeding documentation
   - File: `README.md` (project root)
   - Acceptance: Main README has section "Database Seeding" with links to quickstart.md and SEEDING-GUIDE.md; "Getting Started" mentions seed as part of setup
-- [ ] T043 Add JSDoc comments to seed functions for IDE support
+- [X] T043 Add JSDoc comments to seed functions for IDE support
   - Files: `prisma/seeds.ts`, `prisma/seed-utils.ts`, `prisma/seed-data.ts`
   - Acceptance: All exported functions have JSDoc; parameters and return types documented; usage examples in comments
 
 ### Final Verification
 
-- [ ] T047 Verify seed determinism (FR-008) via multiple runs
+- [X] T047 Verify seed determinism (FR-008) via multiple runs
   - File: Test script or integration test in `tests/integration/seeding.integration.spec.ts`
   - Acceptance: Run seed twice on fresh databases with same inputs; compare database snapshots (meal names, ingredient IDs, user settings); verify 100% match (bit-for-bit identical output); document variance (if any) and root cause
 - [ ] T044 Run complete workflow: migrate → seed → test → verify

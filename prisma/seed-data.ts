@@ -42,8 +42,11 @@ export const SEED_TENANTS = [
 ];
 
 /**
- * System user (creator of meals) - one per tenant for tenant isolation.
- * Use getSystemUserIdForTenant(tenantId) to get the deterministic ID for a tenant.
+ * Returns the deterministic system user ID for a tenant (used as meal creator in seed).
+ * One per tenant for tenant isolation.
+ *
+ * @param tenantId - Tenant UUID
+ * @returns Deterministic UUID for the system user
  */
 export function getSystemUserIdForTenant(tenantId: string): string {
   return deterministicUuid(`System-User-${tenantId}`);
@@ -366,14 +369,21 @@ export function getNextWeekStart(fromDate: Date = new Date(), weekStartDay: stri
 }
 
 /**
- * Calculate next Monday from a given date (convenience; equivalent to getNextWeekStart(d, "MONDAY"))
+ * Calculate next Monday from a given date.
+ * Convenience wrapper for getNextWeekStart(fromDate, "MONDAY").
+ *
+ * @param fromDate - Reference date (default: today)
+ * @returns Date of the next Monday (or today if today is Monday)
  */
 export function getNextMonday(fromDate: Date = new Date()): Date {
   return getNextWeekStart(fromDate, 'MONDAY');
 }
 
 /**
- * Get day of week name from date
+ * Get day of week name (e.g. "MONDAY") from a date for Prisma DayOfWeek enum.
+ *
+ * @param date - Input date
+ * @returns Day name string matching DayOfWeekMap
  */
 export function getDayOfWeek(date: Date): keyof typeof DayOfWeekMap {
   const days = [
@@ -389,7 +399,10 @@ export function getDayOfWeek(date: Date): keyof typeof DayOfWeekMap {
 }
 
 /**
- * Get short day abbreviation
+ * Get short day abbreviation (e.g. "MON") from a date for Prisma ShortDay enum.
+ *
+ * @param date - Input date
+ * @returns Short day string (SUN, MON, TUE, ...)
  */
 export function getShortDay(date: Date): string {
   const shortDays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];

@@ -5,7 +5,7 @@ import { PrismaMealRepository } from '@/infrastructure/database/repositories/pri
 import { PrismaUserSettingsRepository } from '@/infrastructure/database/repositories/prisma-user-settings.repository';
 import { resetDatabase, getTestPrisma } from '../setup';
 import { seedDatabase } from '../../prisma/seed-utils';
-import { SEED_TENANTS } from '../../prisma/seed-data';
+import { SEED_TENANTS, SEED_USER_SETTINGS } from '../../prisma/seed-data';
 
 /**
  * E2E Tests: Database Seeding (US1)
@@ -151,6 +151,62 @@ describe('Database Seeding (E2E)', () => {
         const dayDiff = (dates[i] - dates[i - 1]) / (1000 * 60 * 60 * 24);
         expect(Math.abs(dayDiff - 1)).toBeLessThan(0.1); // Allow small floating point differences
       }
+    });
+  });
+
+  describe('Planned week structure (US4)', () => {
+    test('each planned week has exactly 7 day plans', async () => {
+      const weeks = await prisma.plannedWeek.findMany({
+        include: { dayPlans: true },
+      });
+      expect(weeks.length).toBe(4);
+      weeks.forEach(week => {
+        expect(week.dayPlans.length).toBe(7);
+      });
+    });
+
+    test('week starting dates align with tenant weekStartDay', async () => {
+      const weeks = await prisma.plannedWeek.findMany({
+        include: { dayPlans: true },
+      });
+      const dayNames = [
+        'SUNDAY',
+        'MONDAY',
+        'TUESDAY',
+        'WEDNESDAY',
+        'THURSDAY',
+        'FRIDAY',
+        'SATURDAY',
+      ];
+
+      for (const week of weeks) {
+        const settings = SEED_USER_SETTINGS.find(s => s.tenantId === week.tenantId);
+        const expectedDay = settings?.weekStartDay ?? 'MONDAY';
+        const startDate = new Date(week.startingDate);
+        const actualDay = dayNames[startDate.getDay()];
+        expect(actualDay).toBe(expectedDay);
+      }
+    });
+
+    test('some day plan slots are filled and some are empty (~50% coverage)', async () => {
+      const weeks = await prisma.plannedWeek.findMany({
+        include: { dayPlans: true },
+      });
+      let filledSlots = 0;
+      let emptySlots = 0;
+      weeks.forEach(week => {
+        week.dayPlans.forEach(dp => {
+          if (dp.lunchMealId != null) filledSlots++;
+          else emptySlots++;
+          if (dp.dinnerMealId != null) filledSlots++;
+          else emptySlots++;
+        });
+      });
+      expect(filledSlots).toBeGreaterThan(0);
+      expect(emptySlots).toBeGreaterThan(0);
+      // Seed assigns 7 slots per tenant across 2 weeks = 14 filled; 4 weeks × 7 days × 2 = 56 slots, so 14 filled, 42 empty
+      expect(filledSlots).toBeGreaterThanOrEqual(14);
+      expect(emptySlots).toBeGreaterThanOrEqual(14);
     });
   });
 
@@ -305,6 +361,53 @@ describe('Database Seeding (E2E)', () => {
       meals.forEach(meal => {
         expect(meal.qualities.isLunch).toBe(true);
       });
+    });
+  });
+
+  describe('Comprehensive E2E (all 4 user stories)', () => {
+    test('US1: seed creates tenants, meals, ingredients, and user settings', async () => {
+      const tenants = await prisma.tenant.findMany();
+      expect(tenants.length).toBe(2);
+      const meals = await prisma.meal.count();
+      expect(meals).toBeGreaterThanOrEqual(20);
+      const ingredients = await prisma.ingredient.count();
+      expect(ingredients).toBeGreaterThanOrEqual(30);
+      const settings = await prisma.userSettings.count();
+      expect(settings).toBe(2);
+    });
+
+    test('US2: data is isolated per tenant (no cross-tenant leakage)', async () => {
+      const [t1, t2] = await prisma.tenant.findMany({ orderBy: { name: 'asc' } });
+      const t1Meals = await prisma.meal.count({ where: { tenantId: t1.id } });
+      const t2Meals = await prisma.meal.count({ where: { tenantId: t2.id } });
+      expect(t1Meals).toBeGreaterThanOrEqual(10);
+      expect(t2Meals).toBeGreaterThanOrEqual(10);
+    });
+
+    test('US3: eligible meals endpoint returns data for seeded tenants', async () => {
+      const useCase = new GetEligibleMealsUseCase(
+        new PrismaMealRepository(prisma),
+        new GetEligibleMealsUserSettingsRepositoryAdapter(new PrismaUserSettingsRepository(prisma))
+      );
+      const meals = await useCase.execute({
+        tenantId: SEED_TENANTS[0].id,
+        date: '2026-02-16',
+        mealType: 'lunch',
+      });
+      expect(meals.length).toBeGreaterThanOrEqual(1);
+    });
+
+    test('US4: planned weeks have 7 day plans each with partial meal coverage', async () => {
+      const weeks = await prisma.plannedWeek.findMany({
+        include: { dayPlans: true },
+      });
+      expect(weeks.length).toBe(4);
+      weeks.forEach(w => expect(w.dayPlans.length).toBe(7));
+      const withMeals = weeks.flatMap(w =>
+        w.dayPlans.filter(dp => dp.lunchMealId != null || dp.dinnerMealId != null)
+      );
+      // 7 assignments per tenant × 2 tenants = 14 day plans with at least one meal
+      expect(withMeals.length).toBeGreaterThanOrEqual(14);
     });
   });
 });

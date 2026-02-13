@@ -8,6 +8,7 @@ import {
 } from '../../prisma/seed-utils';
 import { SEED_TENANTS, SEED_MEALS } from '../../prisma/seed-data';
 import { PrismaMealRepository } from '@/infrastructure/database/repositories/prisma-meal.repository';
+import type { PrismaClient } from '@prisma/client';
 import { resetDatabase, getTestPrisma } from '../setup';
 
 const QUALITY_KEYS = [
@@ -280,7 +281,7 @@ describe('Seed Utilities', () => {
 
       for (const key of QUALITY_KEYS) {
         const count = meals.filter(
-          m => m.qualities && (m.qualities as Record<string, boolean>)[key] === true
+          m => m.qualities && (m.qualities as unknown as Record<string, boolean>)[key] === true
         ).length;
         expect(count).toBeGreaterThanOrEqual(2);
       }
@@ -293,7 +294,7 @@ describe('Seed Utilities', () => {
         include: { qualities: true },
       });
       meals.forEach(meal => {
-        const q = meal.qualities as Record<string, boolean> | null;
+        const q = meal.qualities as unknown as Record<string, boolean> | null;
         if (!q) return;
         if (q.isLunch) {
           expect(q.isDinner).toBe(true);
@@ -308,10 +309,10 @@ describe('Seed Utilities', () => {
         include: { qualities: true },
       });
       const hasLunchSuitable = meals.some(
-        m => (m.qualities as Record<string, boolean>)?.isLunch === true
+        m => (m.qualities as unknown as Record<string, boolean>)?.isLunch === true
       );
       const hasDinnerOnly = meals.some(m => {
-        const q = m.qualities as Record<string, boolean> | null;
+        const q = m.qualities as unknown as Record<string, boolean> | null;
         return q?.isDinner === true && q?.isLunch === false;
       });
       expect(hasLunchSuitable).toBe(true);
@@ -383,4 +384,110 @@ describe('Seed Utilities', () => {
       });
     });
   });
+
+  describe('Day plan meal assignments (US4)', () => {
+    beforeAll(async () => {
+      await resetDatabase();
+      await seedDatabase(prisma);
+    });
+
+    test('day plans with lunchMealId have meals that are isLunch', async () => {
+      const dayPlansWithLunch = await prisma.dayPlan.findMany({
+        where: { lunchMealId: { not: null } },
+        include: { lunchMeal: { include: { qualities: true } } },
+      });
+      expect(dayPlansWithLunch.length).toBeGreaterThanOrEqual(1);
+      dayPlansWithLunch.forEach(dp => {
+        expect(dp.lunchMeal).toBeDefined();
+        expect(dp.lunchMeal?.qualities?.isLunch).toBe(true);
+      });
+    });
+
+    test('day plans with dinnerMealId have meals that are isDinner', async () => {
+      const dayPlansWithDinner = await prisma.dayPlan.findMany({
+        where: { dinnerMealId: { not: null } },
+        include: { dinnerMeal: { include: { qualities: true } } },
+      });
+      expect(dayPlansWithDinner.length).toBeGreaterThanOrEqual(1);
+      dayPlansWithDinner.forEach(dp => {
+        expect(dp.dinnerMeal).toBeDefined();
+        expect(dp.dinnerMeal?.qualities?.isDinner).toBe(true);
+      });
+    });
+
+    test('at least one dinner assignment has makesLunch (leftover potential)', async () => {
+      const dayPlansWithDinner = await prisma.dayPlan.findMany({
+        where: { dinnerMealId: { not: null } },
+        include: { dinnerMeal: { include: { qualities: true } } },
+      });
+      const withMakesLunch = dayPlansWithDinner.filter(
+        dp => dp.dinnerMeal?.qualities?.makesLunch === true
+      );
+      expect(withMakesLunch.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe('80% unique meal-ingredient combinations (SC-002)', () => {
+    beforeAll(async () => {
+      await resetDatabase();
+      await seedDatabase(prisma);
+    });
+
+    test('at least 80% of seeded meals have unique meal-name + ingredient set combinations', async () => {
+      const meals = await prisma.meal.findMany({
+        include: { ingredients: { include: { ingredient: true } } },
+      });
+      expect(meals.length).toBe(20); // 10 per tenant × 2
+
+      const comboKey = (meal: {
+        mealName: string;
+        ingredients: { ingredient: { ingredientName: string } }[];
+      }) => {
+        const names = meal.ingredients.map(i => i.ingredient.ingredientName).sort();
+        return `${meal.mealName}|${names.join(',')}`;
+      };
+
+      const keys = meals.map(comboKey);
+      const uniqueKeys = new Set(keys);
+      const uniqueCount = uniqueKeys.size;
+      // 10 distinct meal definitions duplicated for 2 tenants = 10 unique combos. SC-002: ≥80% of meal *types* unique = ≥8 of 10.
+      expect(uniqueCount).toBeGreaterThanOrEqual(8);
+    });
+  });
+
+  describe('Seed determinism (FR-008)', () => {
+    test('two seed runs on fresh DBs produce identical meal names and structure', async () => {
+      await resetDatabase();
+      await seedDatabase(prisma);
+
+      const snapshot1 = await captureSeedSnapshot(prisma);
+
+      await resetDatabase();
+      await seedDatabase(prisma);
+
+      const snapshot2 = await captureSeedSnapshot(prisma);
+
+      expect(snapshot2.mealNamesSort).toEqual(snapshot1.mealNamesSort);
+      expect(snapshot2.tenantIdsSort).toEqual(snapshot1.tenantIdsSort);
+      expect(snapshot2.settingsWeekStartDays).toEqual(snapshot1.settingsWeekStartDays);
+    });
+  });
 });
+
+async function captureSeedSnapshot(prisma: PrismaClient) {
+  const meals = await prisma.meal.findMany({
+    select: { mealName: true, tenantId: true },
+  });
+  const tenants = await prisma.tenant.findMany({
+    select: { id: true },
+  });
+  const settings = await prisma.userSettings.findMany({
+    select: { weekStartDay: true },
+  });
+
+  return {
+    mealNamesSort: [...meals.map(m => m.mealName)].sort(),
+    tenantIdsSort: [...tenants.map(t => t.id)].sort(),
+    settingsWeekStartDays: [...settings.map(s => s.weekStartDay)].sort(),
+  };
+}

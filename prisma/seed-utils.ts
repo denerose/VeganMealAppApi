@@ -12,8 +12,8 @@
  * - seedDatabase(prisma): Main orchestration function for seeding
  */
 
-import { v5 as uuidv5 } from "uuid";
-import type { PrismaClient } from "@prisma/client";
+import { v5 as uuidv5 } from 'uuid';
+import type { PrismaClient } from '@prisma/client';
 import {
   SEED_TENANTS,
   SEED_INGREDIENTS,
@@ -21,16 +21,16 @@ import {
   SEED_USER_SETTINGS,
   getSystemUserIdForTenant,
   deterministicUuid,
-  getNextMonday,
+  getNextWeekStart,
   getDayOfWeek,
   getShortDay,
-} from "./seed-data.js";
+} from './seed-data.js';
 
 /**
  * Namespace UUID for deterministic v5 generation
  * Using a fixed namespace ensures consistent UUID generation from same seed strings
  */
-const SEED_NAMESPACE = "550e8400-e29b-41d4-a716-446655440000";
+const SEED_NAMESPACE = '550e8400-e29b-41d4-a716-446655440000';
 
 /**
  * Re-export deterministicUuid from seed-data for convenience
@@ -48,12 +48,9 @@ export { deterministicUuid };
  *   log("Database connected");              // [12:34:56] ✓ Database connected
  *   log("Invalid input", "error");          // [12:34:56] ❌ Invalid input
  */
-export function log(
-  message: string,
-  level: "info" | "error" = "info"
-): void {
-  const timestamp = new Date().toISOString().split("T")[1].split(".")[0];
-  const prefix = level === "error" ? "❌" : "✓";
+export function log(message: string, level: 'info' | 'error' = 'info'): void {
+  const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+  const prefix = level === 'error' ? '❌' : '✓';
   console.log(`[${timestamp}] ${prefix} ${message}`);
 }
 
@@ -70,8 +67,8 @@ export function log(
  *   logVerbose("Creating ingredient: Tofu");  // (no output)
  */
 export function logVerbose(message: string): void {
-  if (process.env.SEED_VERBOSE === "true") {
-    const timestamp = new Date().toISOString().split("T")[1].split(".")[0];
+  if (process.env.SEED_VERBOSE === 'true') {
+    const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
     console.log(`[${timestamp}] [VERBOSE] ${message}`);
   }
 }
@@ -94,14 +91,11 @@ export function logVerbose(message: string): void {
  *     return;
  *   }
  */
-export async function checkIdempotency(
-  prisma: PrismaClient,
-  tenantId: string
-): Promise<boolean> {
+export async function checkIdempotency(prisma: PrismaClient, tenantId: string): Promise<boolean> {
   try {
     const markerMeal = await prisma.meal.findFirst({
       where: {
-        mealName: "Creamy Cashew Alfredo Pasta",
+        mealName: 'Creamy Cashew Alfredo Pasta',
         tenantId,
       },
     });
@@ -128,10 +122,7 @@ export interface SeedResult {
  * Create or return the system user for a given tenant.
  * Each tenant has its own system user so meal.createdBy respects tenant isolation.
  */
-async function ensureSystemUser(
-  prisma: PrismaClient,
-  tenantId: string
-): Promise<string> {
+async function ensureSystemUser(prisma: PrismaClient, tenantId: string): Promise<string> {
   const systemUserId = getSystemUserIdForTenant(tenantId);
 
   let user = await prisma.user.findUnique({
@@ -143,7 +134,7 @@ async function ensureSystemUser(
       data: {
         id: systemUserId,
         email: `system-${tenantId}@seed.local`,
-        nickname: "System",
+        nickname: 'System',
         tenantId,
         isTenantAdmin: false,
       },
@@ -190,15 +181,15 @@ export async function seedDatabase(prisma: PrismaClient): Promise<SeedResult> {
   const alreadySeeded = await checkIdempotency(prisma, firstTenantId);
 
   if (alreadySeeded) {
-    log("Seed data already exists, skipping seeding");
+    log('Seed data already exists, skipping seeding');
     return result;
   }
 
-  log("Starting seed process...");
+  log('Starting seed process...');
 
   try {
     // 1. Create tenants
-    logVerbose("Creating tenants...");
+    logVerbose('Creating tenants...');
     for (const tenant of SEED_TENANTS) {
       await prisma.tenant.upsert({
         where: { id: tenant.id },
@@ -289,9 +280,7 @@ export async function seedDatabase(prisma: PrismaClient): Promise<SeedResult> {
 
       // 6. Create user settings
       logVerbose(`Creating user settings for tenant ${tenant.id}...`);
-      const settingsData = SEED_USER_SETTINGS.find(
-        (s) => s.tenantId === tenant.id
-      );
+      const settingsData = SEED_USER_SETTINGS.find(s => s.tenantId === tenant.id);
 
       if (settingsData) {
         await prisma.userSettings.upsert({
@@ -305,25 +294,37 @@ export async function seedDatabase(prisma: PrismaClient): Promise<SeedResult> {
           },
         });
         result.userSettingsCreated++;
-        logVerbose(
-          `    Created user settings: weekStartDay=${settingsData.weekStartDay}`
-        );
+        logVerbose(`    Created user settings: weekStartDay=${settingsData.weekStartDay}`);
       }
 
       // 7. Create planned weeks with day plans (50% meal coverage)
       logVerbose(`Creating planned weeks for tenant ${tenant.id}...`);
 
-      // Get meals for this tenant
+      // Week 1 start respects tenant's weekStartDay (e.g. Monday for T1, Sunday for T2)
+      const weekStartDay = settingsData?.weekStartDay ?? 'MONDAY';
+      const week1Start = getNextWeekStart(new Date(), weekStartDay);
+
+      // Get meals for this tenant with qualities (for lunch vs dinner slot assignment)
       const allMeals = await prisma.meal.findMany({
         where: { tenantId: tenant.id },
+        include: { qualities: true },
       });
 
-      // Calculate meal assignments (50% coverage = ~7 meals across 14 slots)
-      const mealIds = allMeals.map((m) => m.id);
-      const assignmentIndices = [0, 2, 4, 6, 7, 10, 12]; // 7 assignments across 14 slots
+      const lunchMealIds = allMeals.filter(m => m.qualities?.isLunch).map(m => m.id);
+      const dinnerMealIds = allMeals.filter(m => m.qualities?.isDinner).map(m => m.id);
 
-      // Create 2 planned weeks
-      let week1Start = getNextMonday();
+      // 7 assignments across 14 day-slots (~50%): (weekNum, dayNum, isLunch) so 7 days get a meal, 7 days are empty
+      const assignmentSlots: { weekNum: number; dayNum: number; isLunch: boolean }[] = [
+        { weekNum: 0, dayNum: 0, isLunch: true },
+        { weekNum: 0, dayNum: 2, isLunch: false },
+        { weekNum: 0, dayNum: 4, isLunch: true },
+        { weekNum: 1, dayNum: 0, isLunch: false },
+        { weekNum: 1, dayNum: 1, isLunch: true },
+        { weekNum: 1, dayNum: 3, isLunch: false },
+        { weekNum: 1, dayNum: 5, isLunch: true },
+      ];
+
+      // Create 2 planned weeks (Week 2 starts 7 days after Week 1)
       for (let weekNum = 0; weekNum < 2; weekNum++) {
         const weekStart = new Date(week1Start);
         weekStart.setDate(weekStart.getDate() + weekNum * 7);
@@ -336,37 +337,38 @@ export async function seedDatabase(prisma: PrismaClient): Promise<SeedResult> {
           },
         });
         result.plannedWeeksCreated++;
-        logVerbose(
-          `    Created planned week: ${weekStart.toISOString().split("T")[0]}`
-        );
+        logVerbose(`    Created planned week: ${weekStart.toISOString().split('T')[0]}`);
 
-        // Create 7 day plans for this week
+        // Create 7 day plans per week; assign meal only when (weekNum, dayNum) is in assignmentSlots (~50% = 7 of 14 days)
         for (let dayNum = 0; dayNum < 7; dayNum++) {
           const dayDate = new Date(weekStart);
           dayDate.setDate(dayDate.getDate() + dayNum);
 
-          const shouldAssignMeal = assignmentIndices.includes(dayNum);
-          const mealAssignmentIndex = assignmentIndices.indexOf(dayNum);
-          const mealId = shouldAssignMeal
-            ? mealIds[mealAssignmentIndex % mealIds.length]
-            : null;
+          const assignment = assignmentSlots.find(a => a.weekNum === weekNum && a.dayNum === dayNum);
+          let lunchMealId: string | null = null;
+          let dinnerMealId: string | null = null;
+          if (assignment) {
+            const assignIndex = assignmentSlots.indexOf(assignment);
+            if (assignment.isLunch && lunchMealIds.length > 0) {
+              lunchMealId = lunchMealIds[assignIndex % lunchMealIds.length] ?? null;
+            } else if (!assignment.isLunch && dinnerMealIds.length > 0) {
+              dinnerMealId = dinnerMealIds[assignIndex % dinnerMealIds.length] ?? null;
+            }
+          }
 
-          const dayPlan = await prisma.dayPlan.create({
+          await prisma.dayPlan.create({
             data: {
-              id: deterministicUuid(
-                `${tenant.id}-day-${weekNum}-${dayNum}`
-              ),
+              id: deterministicUuid(`${tenant.id}-day-${weekNum}-${dayNum}`),
               date: dayDate,
-              longDay: getDayOfWeek(dayDate) as any,
-              shortDay: getShortDay(dayDate) as any,
+              longDay: getDayOfWeek(dayDate) as 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY',
+              shortDay: getShortDay(dayDate) as 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT' | 'SUN',
               plannedWeekId: plannedWeek.id,
-              dinnerMealId: mealId,
+              lunchMealId,
+              dinnerMealId,
             },
           });
           result.dayPlansCreated++;
-          logVerbose(
-            `      Created day plan: ${dayDate.toISOString().split("T")[0]}`
-          );
+          logVerbose(`      Created day plan: ${dayDate.toISOString().split('T')[0]}`);
         }
       }
     }
@@ -375,7 +377,7 @@ export async function seedDatabase(prisma: PrismaClient): Promise<SeedResult> {
       `Seeding completed: ${result.mealsCreated} meals, ${result.ingredientsCreated} ingredients, ${result.tenantsCreated} tenants`
     );
   } catch (error) {
-    log(`Error during seeding: ${String(error)}`, "error");
+    log(`Error during seeding: ${String(error)}`, 'error');
     throw error;
   }
 
