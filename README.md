@@ -172,8 +172,9 @@ Authorization: Bearer <jwt-token>
 - `PUT /api/v1/user-settings` - Update preferences
 
 For complete API documentation, see:
-- [Meal Planning API OpenAPI Spec](./specs/001-meal-planning-api/contracts/openapi.yaml)
-- [User Authentication API OpenAPI Spec](./specs/003-user-auth/contracts/openapi.yaml)
+- [Unified OpenAPI Specification](./openapi.yaml) - Complete API reference (recommended)
+- [Meal Planning API Spec](./specs/001-meal-planning-api/contracts/openapi.yaml) - Meal planning endpoints only
+- [User Authentication API Spec](./specs/003-user-auth/contracts/openapi.yaml) - Authentication endpoints only
 
 ## Project Structure
 
