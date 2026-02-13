@@ -151,6 +151,9 @@ export const registerRoutes = (router: AppRouter, controllers: RouteControllers)
     router.post(`${prefix}/auth/password/reset`, ctx => auth.resetPassword(ctx));
   }
 
+  // Middleware composition for protected endpoints
+  const withAuth = composeMiddleware(authMiddleware, tenantIsolationMiddleware);
+
   // Password Management (protected endpoints)
   if (controllers.auth) {
     const auth = controllers.auth;
@@ -162,7 +165,6 @@ export const registerRoutes = (router: AppRouter, controllers: RouteControllers)
   }
 
   // Planned Weeks (protected endpoints)
-  const withAuth = composeMiddleware(authMiddleware, tenantIsolationMiddleware);
   router.get(
     `${prefix}/planned-weeks`,
     withAuth(ctx => controllers.plannedWeek.list(ctx))

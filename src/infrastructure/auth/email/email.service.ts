@@ -23,12 +23,22 @@ export type EmailOptions = {
 /**
  * Service for sending emails via SMTP.
  * Used for password reset emails and other transactional emails.
+ * Lazy-initializes the SMTP transporter only when needed to avoid startup failures
+ * if SMTP configuration is not provided (e.g., in development environments).
  */
 export class EmailService {
-  private readonly transporter: nodemailer.Transporter;
-  private readonly from: string;
+  private transporter: nodemailer.Transporter | null = null;
+  private from: string | null = null;
 
-  constructor() {
+  /**
+   * Lazy-initializes the SMTP transporter and from address.
+   * Throws an error if SMTP configuration is missing when actually trying to send an email.
+   */
+  private ensureInitialized(): void {
+    if (this.transporter && this.from) {
+      return;
+    }
+
     const smtpHost = getEnv('SMTP_HOST');
     const smtpPort = parseInt(getEnvOptional('SMTP_PORT', '587'), 10);
     const smtpSecure = getEnvOptional('SMTP_SECURE', 'false') === 'true';
@@ -51,9 +61,15 @@ export class EmailService {
    * Sends an email.
    * @param options - Email options (to, subject, html, text)
    * @returns Promise resolving to message info if successful
-   * @throws Error if email delivery fails
+   * @throws Error if email delivery fails or SMTP configuration is missing
    */
   async sendEmail(options: EmailOptions): Promise<nodemailer.SentMessageInfo> {
+    this.ensureInitialized();
+
+    if (!this.transporter || !this.from) {
+      throw new Error('SMTP configuration is not available');
+    }
+
     try {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const info = await this.transporter.sendMail({
