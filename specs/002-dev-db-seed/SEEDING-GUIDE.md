@@ -21,11 +21,11 @@
 
 The seed script is implemented in **TypeScript** using **Prisma ORM** and follows clean architecture principles:
 
-- **Entry Point**: `prisma/seeds.ts` (main script, registered in `package.json`)
-- **Data Definitions**: `prisma/seed-data.ts` (hardcoded, deterministic seed data)
-- **Utilities**: `prisma/seed-utils.ts` (helper functions: UUID generation, logging, idempotency)
-- **Tests**: `tests/integration/seeding.integration.spec.ts` (unit tests for utilities)
-- **Tests**: `tests/e2e/seeding.e2e.spec.ts` (full seed verification)
+- **Entry Point**: `prisma/seed.ts` (main script; invoked via `bun run prisma/seed.ts` in `package.json` under `db:seed`)
+- **Data Definitions**: `prisma/seed-data.ts` (hardcoded, deterministic: `SEED_TENANTS`, `SEED_INGREDIENTS`, `SEED_MEALS`, `SEED_USER_SETTINGS`)
+- **Utilities**: `prisma/seed-utils.ts` (helper functions: `deterministicUuid`, logging, `checkIdempotency`, `seedDatabase`)
+- **Tests**: `tests/integration/seeding.integration.spec.ts` (utilities and DB-backed seed assertions)
+- **Tests**: `tests/e2e/seeding.e2e.spec.ts` (full seed E2E verification)
 
 ### Design Principles
 
@@ -39,205 +39,31 @@ The seed script is implemented in **TypeScript** using **Prisma ORM** and follow
 
 ## File Structure
 
-### `prisma/seeds.ts`
+### `prisma/seed.ts`
 
-Main entry point. Called by `npm run db:seed`.
-
-```typescript
-import { PrismaClient } from '@prisma/client';
-import { seedDatabase } from './seed-utils';
-
-const prisma = new PrismaClient();
-
-async function main() {
-  console.log(`[${new Date().toISOString()}] Starting database seed...`);
-  
-  try {
-    const result = await seedDatabase(prisma);
-    console.log(`[${new Date().toISOString()}] ✓ Seed completed in ${result.duration}ms`);
-    process.exit(0);
-  } catch (error) {
-    console.error(`[${new Date().toISOString()}] ✗ Seed failed: ${error.message}`);
-    process.exit(1);
-  } finally {
-    await prisma.$disconnect();
-  }
-}
-
-main();
-```
+Main entry point. Called by `bun run db:seed` (runs `bun run prisma/seed.ts`). Creates a Prisma client (with optional pg adapter when `DATABASE_URL` is set), calls `seedDatabase(prisma)` from `seed-utils.ts`, and exits with code 0 on success or 1 on error.
 
 ### `prisma/seed-data.ts`
 
-All seed data definitions in one place for easy auditing and modification.
-
-```typescript
-import { UUID } from './seed-utils';
-
-export const seedTenants = [
-  {
-    id: deterministicUuid('Tenant-1'),
-    name: 'Test Tenant 1',
-  },
-  {
-    id: deterministicUuid('Tenant-2'),
-    name: 'Test Tenant 2',
-  },
-];
-
-export const seedIngredients = (tenantId: UUID) => [
-  {
-    id: UUID.v4(), // Can be random; no cross-tenant reference
-    ingredientName: 'Tofu',
-    staple: true,
-    storageType: 'FRIDGE',
-    tenantId,
-  },
-  // ... 14 more ingredients
-];
-
-export const seedMeals = (tenantId: UUID, ingredients: Ingredient[]) => [
-  {
-    id: UUID.v4(),
-    mealName: 'Creamy Cashew Alfredo Pasta',
-    isDinner: true,
-    isLunch: false,
-    isCreamy: true,
-    ingredients: [
-      ingredients.find(i => i.ingredientName === 'Pasta'),
-      ingredients.find(i => i.ingredientName === 'Cashews'),
-      // ...
-    ],
-    tenantId,
-  },
-  // ... 9 more meals
-];
-
-// ... similar functions for user settings, planned weeks, day plans
-```
+All seed data definitions: `SEED_TENANTS`, `SEED_INGREDIENTS`, `SEED_MEALS`, `SEED_USER_SETTINGS`. Exports `deterministicUuid(seed)` and `getSystemUserIdForTenant(tenantId)`. Meals reference ingredients by name; ingredients use `StorageType` enum and have `name`, `storageType`, `staple`. User settings include `weekStartDay` and `dailyPreferences` per day.
 
 ### `prisma/seed-utils.ts`
 
-Reusable utilities imported by seeds.ts and tests.
-
-```typescript
-import crypto from 'crypto';
-import { v5 as uuidv5 } from 'uuid';
-import { PrismaClient } from '@prisma/client';
-
-const SEED_NAMESPACE = '123e4567-e89b-12d3-a456-426614174000';
-
-export function deterministicUuid(seed: string): string {
-  return uuidv5(seed, SEED_NAMESPACE);
-}
-
-export async function checkIdempotency(
-  prisma: PrismaClient,
-  tenantId: string
-): Promise<boolean> {
-  const markerMeal = await prisma.meal.findFirst({
-    where: {
-      mealName: 'Creamy Cashew Alfredo Pasta',
-      tenantId,
-    },
-  });
-  return !!markerMeal;
-}
-
-export function log(message: string, level: 'info' | 'error' = 'info'): void {
-  const timestamp = new Date().toISOString();
-  const prefix = level === 'error' ? '✗' : '✓';
-  console.log(`[${timestamp}] ${prefix} ${message}`);
-}
-
-export function logVerbose(message: string): void {
-  if (process.env.SEED_VERBOSE === 'true') {
-    log(`[VERBOSE] ${message}`, 'info');
-  }
-}
-
-export async function seedDatabase(
-  prisma: PrismaClient
-): Promise<{ duration: number }> {
-  const startTime = Date.now();
-
-  // Main seeding logic here
-  // ...
-
-  return { duration: Date.now() - startTime };
-}
-```
+Reusable utilities: `deterministicUuid(seed)`, `log(message, level)`, `logVerbose(message)`, `checkIdempotency(prisma, tenantId)`, `seedDatabase(prisma)`. Imports seed data from `seed-data.ts` and performs the full orchestration (tenants → ingredients → meals → user settings → planned weeks and day plans). Returns a result object with counts (e.g. `mealsCreated`, `ingredientsCreated`, `tenantsCreated`).
 
 ### Test Files
 
-**`tests/integration/seeding.integration.spec.ts`**: Unit tests for seed utilities
+**`tests/integration/seeding.integration.spec.ts`**: Tests for `deterministicUuid`, `checkIdempotency`, multi-tenant isolation, meal quality diversity, quality-based filtering, day plan assignments, 80% unique meal–ingredient combinations (SC-002), and seed determinism. Uses a shared Prisma client and runs the seed in `beforeAll` when needed.
 
-```typescript
-import { deterministicUuid } from '@/prisma/seed-utils';
+**`tests/e2e/seeding.e2e.spec.ts`**: Full E2E: runs seed, then asserts on meal/ingredient/settings/planned week counts, week structure (7 day plans per week), partial slot coverage, and comprehensive user story coverage (US1–US4).
 
-describe('Seed utilities', () => {
-  test('deterministicUuid produces consistent IDs', () => {
-    const id1 = deterministicUuid('test-seed');
-    const id2 = deterministicUuid('test-seed');
-    expect(id1).toBe(id2);
-  });
-
-  test('deterministicUuid differs for different seeds', () => {
-    const id1 = deterministicUuid('seed-1');
-    const id2 = deterministicUuid('seed-2');
-    expect(id1).not.toBe(id2);
-  });
-});
-```
-
-**`tests/e2e/seeding.e2e.spec.ts`**: Full seed execution tests
-
-```typescript
-import { PrismaClient } from '@prisma/client';
-import { seedDatabase } from '@/prisma/seed-utils';
-
-describe('Seed E2E', () => {
-  let prisma: PrismaClient;
-
-  beforeAll(async () => {
-    prisma = new PrismaClient();
-  });
-
-  test('Seed creates expected data count', async () => {
-    const result = await seedDatabase(prisma);
-    expect(result.duration).toBeLessThan(120000); // < 2 minutes
-
-    const mealCount = await prisma.meal.count();
-    const ingredientCount = await prisma.ingredient.count();
-    
-    expect(mealCount).toBeGreaterThanOrEqual(10);
-    expect(ingredientCount).toBeGreaterThanOrEqual(15);
-  });
-
-  test('Multi-tenant isolation is enforced', async () => {
-    const tenants = await prisma.userSettings.findMany();
-    expect(tenants.length).toBeGreaterThanOrEqual(2);
-
-    const tenant1Meals = await prisma.meal.findMany({
-      where: { tenantId: tenants[0].tenantId },
-    });
-
-    tenant1Meals.forEach(meal => {
-      expect(meal.tenantId).toBe(tenants[0].tenantId);
-    });
-  });
-});
-```
-
-### `package.json` Update
-
-Add seed script to `package.json`:
+### `package.json` scripts
 
 ```json
 {
   "scripts": {
     "db:migrate": "prisma migrate dev",
-    "db:seed": "node -r ts-node/register prisma/seeds.ts",
+    "db:seed": "bun run prisma/seed.ts",
     "db:reset": "prisma migrate reset --force",
     "db:studio": "prisma studio"
   }
@@ -252,13 +78,13 @@ Add seed script to `package.json`:
 
 ```bash
 # Normal run (summary output)
-npm run db:seed
+bun run db:seed
 
 # With verbose logging
-SEED_VERBOSE=true npm run db:seed
+SEED_VERBOSE=true bun run db:seed
 
 # After migrations
-npm run db:migrate && npm run db:seed
+bun run db:migrate && bun run db:seed
 ```
 
 ### Configuration
@@ -274,19 +100,14 @@ Environment variables (optional):
 
 **Success**:
 ```
-[2026-02-13T10:30:45Z] ✓ Starting database seed...
-[2026-02-13T10:30:45Z] ✓ Checking for existing seed data...
-[2026-02-13T10:30:46Z] ✓ Creating 2 tenants and user settings...
-[2026-02-13T10:30:46Z] ✓ Creating 15 ingredients per tenant...
-[2026-02-13T10:30:47Z] ✓ Creating 10 meals per tenant...
-[2026-02-13T10:30:47Z] ✓ Creating 2 planned weeks per tenant...
-[2026-02-13T10:30:48Z] ✓ Seed completed in 3000ms
+[12:34:56] ✓ Starting seed process...
+[12:34:57] ✓ Seeding completed: 20 meals, 30 ingredients, 2 tenants
 ```
 
 **Already Seeded**:
 ```
-[2026-02-13T10:30:45Z] ✓ Starting database seed...
-[2026-02-13T10:30:45Z] ✓ Seed data already exists. Skipping.
+[12:34:56] ✓ Starting seed process...
+[12:34:56] ✓ Seed data already exists, skipping seeding
 ```
 
 **Error**:
@@ -307,7 +128,7 @@ Environment variables (optional):
 
 **Solutions**:
 1. Use existing seeded data (preferred for development)
-2. Reset database: `npm run db:reset`
+2. Reset database: `bun run db:reset`
 3. Manually delete marker meal and re-run
 
 #### Error: "Unique constraint failed"
@@ -315,7 +136,7 @@ Environment variables (optional):
 **Cause**: Attempt to create duplicate meal or ingredient name.
 
 **Solutions**:
-1. Check database state: `npx prisma studio`
+1. Check database state: `bun run db:studio`
 2. Delete conflicting records manually
 3. Ensure no manual data inserted with same names
 
@@ -341,8 +162,8 @@ docker-compose restart postgres
 
 **Solutions**:
 ```bash
-npm run db:migrate
-npm run db:seed
+bun run db:migrate
+bun run db:seed
 ```
 
 ### Error Recovery
@@ -353,7 +174,7 @@ If seed fails mid-execution:
 2. **Inspect database**: Use `prisma studio` to see partial data
 3. **Decide**:
    - If partial seed acceptable: Continue with development
-   - If full reset needed: `npm run db:reset && npm run db:seed`
+   - If full reset needed: `bun run db:reset` then `bun run db:seed`
 4. **Review code**: Check `prisma/seed-data.ts` for data issues
 
 ---
@@ -363,14 +184,15 @@ If seed fails mid-execution:
 ### Run All Seed Tests
 
 ```bash
-npm test -- --testPathPattern=seeding
+bun test seeding
+# or run full check: bun run check
 ```
 
 ### Manual Verification
 
 #### Count Records
 ```bash
-npx prisma studio
+bun run db:studio
 # Click on each table to see record counts
 ```
 
@@ -392,7 +214,7 @@ curl -X GET "http://localhost:3000/api/v1/meals/eligible?date=2026-02-16&mealTyp
 
 Measure seed execution time:
 ```bash
-time npm run db:seed
+time bun run db:seed
 # Output: real 0m2.341s (under 2 minutes ✓)
 ```
 
@@ -402,56 +224,30 @@ time npm run db:seed
 
 ### Adding a New Meal
 
-1. Edit `prisma/seed-data.ts`:
-   ```typescript
-   export const seedMeals = (tenantId: UUID, ingredients: Ingredient[]) => [
-     // ... existing meals ...
-     {
-       id: UUID.v4(),
-       mealName: 'My New Vegan Dish',
-       qualities: { isDinner: true, isLunch: false, ... },
-       ingredients: [ ... ],
-       tenantId,
-     },
-   ];
-   ```
+1. Edit `prisma/seed-data.ts`: add a new entry to the `SEED_MEALS` array following the existing shape (`mealName`, `qualities` object, `ingredientNames` array, optional `recipeLink`/`imageId`).
 
-2. **Remove the idempotency marker** to re-seed:
+2. **Remove the idempotency marker** to re-seed (or run `bun run db:reset` then migrate and seed again):
    ```sql
    DELETE FROM "Meal" WHERE "mealName" = 'Creamy Cashew Alfredo Pasta';
    ```
 
-3. Re-run: `npm run db:seed`
+3. Re-run: `bun run db:seed`
 
 ### Adding More Test Tenants
 
-Modify `seedTenants` in `prisma/seed-data.ts`:
+Modify `SEED_TENANTS` in `prisma/seed-data.ts`:
 ```typescript
-export const seedTenants = [
+export const SEED_TENANTS = [
   { id: deterministicUuid('Tenant-1'), name: 'Test Tenant 1' },
   { id: deterministicUuid('Tenant-2'), name: 'Test Tenant 2' },
   { id: deterministicUuid('Tenant-3'), name: 'Test Tenant 3' }, // New
 ];
 ```
+Then extend `SEED_USER_SETTINGS` and ensure seed-utils iterates over all tenants.
 
 ### Changing Idempotency Marker
 
-If "Creamy Cashew Alfredo Pasta" becomes a user-created meal in production, change marker:
-
-```typescript
-// In seed-utils.ts
-const MARKER_MEAL_NAME = 'My New Marker Meal';
-
-export async function checkIdempotency(
-  prisma: PrismaClient,
-  tenantId: string
-): Promise<boolean> {
-  const markerMeal = await prisma.meal.findFirst({
-    where: { mealName: MARKER_MEAL_NAME, tenantId },
-  });
-  return !!markerMeal;
-}
-```
+If "Creamy Cashew Alfredo Pasta" becomes a user-created meal in production, change the marker in `prisma/seed-utils.ts`: in `checkIdempotency`, replace the `mealName` in the `where` clause with a constant (e.g. `MARKER_MEAL_NAME`) and set it to a distinct seed-only meal name. Ensure that meal is still created by the seed so the check remains valid.
 
 ---
 
@@ -463,10 +259,10 @@ Ensure environment variable is set before command:
 
 ```bash
 # Wrong
-npm run db:seed SEED_VERBOSE=true
+bun run db:seed SEED_VERBOSE=true
 
 # Correct
-SEED_VERBOSE=true npm run db:seed
+SEED_VERBOSE=true bun run db:seed
 ```
 
 ### Issue: "Seed runs but no data appears"
@@ -474,15 +270,15 @@ SEED_VERBOSE=true npm run db:seed
 1. Check exit code: `echo $?` (should be 0)
 2. Verify database connection: `npx prisma studio`
 3. Check idempotency: Seed may have skipped if marker exists
-4. Enable verbose logging: `SEED_VERBOSE=true npm run db:seed`
+4. Enable verbose logging: `SEED_VERBOSE=true bun run db:seed`
 
 ### Issue: "Old seed data interferes with new tests"
 
 Solution: Reset between test runs:
 
 ```bash
-npm run db:reset
-npm test
+bun run db:reset
+bun run check
 ```
 
 ### Issue: "Performance degradation over time"
@@ -490,15 +286,15 @@ npm test
 Seed gets slower after multiple runs due to accumulation. Fix:
 
 ```bash
-npm run db:reset  # Clears and re-initializes
-npm run db:seed   # Fresh seed
+bun run db:reset  # Clears and re-initializes schema
+bun run db:seed   # Fresh seed
 ```
 
 ---
 
 ## Support & Questions
 
-- **Implementation Details**: See `prisma/seeds.ts`, `seed-data.ts`, `seed-utils.ts`
+- **Implementation Details**: See `prisma/seed.ts`, `seed-data.ts`, `seed-utils.ts`
 - **Data Structure**: See [data-model.md](./data-model.md)
 - **Quick Start**: See [quickstart.md](./quickstart.md)
 - **Design Decisions**: See [research.md](./research.md)

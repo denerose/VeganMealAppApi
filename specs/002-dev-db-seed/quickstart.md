@@ -14,29 +14,31 @@ This guide walks you through seeding your local development database with sample
 
 ## Prerequisites
 
-- Node.js 16+ installed
-- Docker and Docker Compose running (for PostgreSQL)
+- **Bun** (or Node.js 16+) installed
+- Docker or Podman running (for PostgreSQL)
 - Repository cloned and dependencies installed
 
 ```bash
 git clone <repo-url>
 cd VeganMealAppApi
-npm install
+bun install
 ```
 
 ---
 
 ## Step 1: Start the Database
 
-If using Docker Compose:
+If using Docker Compose or Podman Compose:
 
 ```bash
 docker-compose up -d
+# or: podman-compose up -d
 ```
 
 Verify the database is running:
 ```bash
 docker-compose ps
+# or: podman-compose ps
 # Should show PostgreSQL container as "running"
 ```
 
@@ -47,7 +49,7 @@ docker-compose ps
 Initialize the schema:
 
 ```bash
-npm run db:migrate
+bun run db:migrate
 ```
 
 This creates all tables, indexes, and relationships defined in `schema.prisma`.
@@ -59,20 +61,16 @@ This creates all tables, indexes, and relationships defined in `schema.prisma`.
 Seed the database with sample data:
 
 ```bash
-npm run db:seed
+bun run db:seed
 ```
 
-**Expected output**:
+**Expected output** (summary line):
 ```
-[2026-02-13T10:30:45Z] ✓ Checking for existing seed data...
-[2026-02-13T10:30:45Z] ✓ Creating tenant settings...
-[2026-02-13T10:30:45Z] ✓ Created 15 ingredients
-[2026-02-13T10:30:45Z] ✓ Created 10 meals
-[2026-02-13T10:30:45Z] ✓ Created 2 planned weeks (14 day plans)
-[2026-02-13T10:30:47Z] ✓ Seed completed in 2.1 seconds
+[12:34:56] ✓ Starting seed process...
+[12:34:57] ✓ Seeding completed: 20 meals, 30 ingredients, 2 tenants
 ```
 
-**Success indicator**: Script exits with code 0 (no errors in output).
+**Success indicator**: Script exits with code 0 (no errors in output). The seed creates 10 meals per tenant (20 total), 15 ingredients per tenant (30 total), 2 tenants, 4 planned weeks (2 per tenant), and 28 day plans (7 per week).
 
 ---
 
@@ -83,21 +81,22 @@ npm run db:seed
 Open an interactive database explorer:
 
 ```bash
-npx prisma studio
+bun run db:studio
+# or: npx prisma studio
 ```
 
 A browser window opens at `http://localhost:5555`. Browse tables:
-- **Meals**: Click to see all 10 seeded meals
-- **Ingredients**: View 15 vegan ingredients
-- **UserSettings**: Check tenant preferences
-- **PlannedWeeks**: See 2+ weeks with day plans
+- **Meal**: 20 seeded meals (10 per tenant)
+- **Ingredient**: 30 vegan ingredients (15 per tenant)
+- **UserSettings**: 2 tenant preference records
+- **PlannedWeek**: 4 planned weeks (2 per tenant), each with 7 day plans
 
 ### Option B: API Calls
 
 Start the API server:
 
 ```bash
-npm run dev
+bun run dev
 ```
 
 In another terminal, test endpoints:
@@ -164,9 +163,9 @@ GROUP BY "tenantId";
 
 ### Sample Planned Week
 
-- **Week 1**: Starts next Monday
-- **Coverage**: 7 meals across 14 day-slots (50% coverage)
-- **Mix**: Dinners on some days, lunches on others, some empty days for testing
+- **Per tenant**: 2 planned weeks, each starting from the tenant's configured week start day
+- **Coverage**: 7 meal assignments per tenant across 2 weeks (partial coverage; some lunch/dinner slots empty)
+- **Mix**: Dinners on some days, lunches on others, some empty slots for testing
 - **Testing**: Can assign new meals to empty slots via API
 
 ---
@@ -179,8 +178,8 @@ The database was already seeded. Options:
 
 #### Option A: Reset database
 ```bash
-npm run db:reset  # Drops all data and re-runs migrations
-npm run db:seed   # Re-seed
+bun run db:reset  # Drops all data and re-runs migrations
+bun run db:seed   # Re-seed
 ```
 
 #### Option B: Manual cleanup (advanced)
@@ -199,8 +198,8 @@ DELETE FROM "Tenant"; -- If applicable
 
 If migrations don't apply:
 ```bash
-npm run db:migrate:reset  # Reset AND re-run migrations
-npm run db:seed
+bun run db:reset   # Drops DB, re-runs migrations (does not auto-seed)
+bun run db:seed    # Re-seed
 ```
 
 ### Issue: Timeout or slow execution
@@ -208,7 +207,7 @@ npm run db:seed
 If seed takes >2 minutes:
 - Check database connectivity: `docker-compose logs postgres`
 - Check system resources (disk space, RAM)
-- Enable verbose logging: `SEED_VERBOSE=true npm run db:seed`
+- Enable verbose logging: `SEED_VERBOSE=true bun run db:seed`
 
 ### Issue: Authentication error in API calls
 
@@ -224,7 +223,7 @@ You need a valid JWT token. For development, either:
 For detailed seed execution logs:
 
 ```bash
-SEED_VERBOSE=true npm run db:seed
+SEED_VERBOSE=true bun run db:seed
 ```
 
 **Output includes**:
@@ -244,28 +243,34 @@ To modify seed data (e.g., add more meals, change preferences):
 1. Edit `prisma/seed-data.ts`
 2. Add or modify meal/ingredient definitions
 3. **Delete the idempotency marker** (Creamy Cashew Alfredo Pasta) if re-seeding with changes
-4. Run seed: `npm run db:seed`
+4. Run seed: `bun run db:seed`
 
-Example: Add a new meal
-```typescript
-// In prisma/seed-data.ts
-export const seedMeals = (tenantId: UUID) => [
-  // ... existing meals ...
-  {
-    id: UUID(),
-    mealName: "My New Vegan Meal",
-    qualities: { isDinner: true, isLunch: false, ... },
-    ingredients: [ /* ingredient IDs */ ],
-  },
-];
+Example: Add a new meal to `SEED_MEALS` in `prisma/seed-data.ts` (see existing entries for the shape: `mealName`, `qualities`, `ingredientNames`, etc.). Re-run seed after resetting or removing the idempotency marker.
+
+---
+
+## Full workflow (migrate → seed → test → verify)
+
+With the database already running, run the full pipeline in one go:
+
+```bash
+bun run db:migrate && bun run db:seed && bun run check
 ```
+
+Optional: open Prisma Studio to inspect data:
+
+```bash
+bun run db:studio
+```
+
+**Success**: All commands exit 0; tests pass (requires database connection).
 
 ---
 
 ## Next Steps
 
 - **Explore API**: Test endpoints with seeded data via `curl` or Postman
-- **Check Tests**: Run integration tests: `npm test`
+- **Check Tests**: Run format, lint, and tests: `bun run check`
 - **Read Documentation**: See [SEEDING-GUIDE.md](./SEEDING-GUIDE.md) for implementation details
 - **Develop Features**: Use seeded data as a stable foundation for new features
 
@@ -275,13 +280,14 @@ export const seedMeals = (tenantId: UUID) => [
 
 | Command | Purpose |
 |---------|---------|
-| `npm run db:migrate` | Apply pending migrations |
-| `npm run db:seed` | Populate database with sample data |
-| `npm run db:reset` | Drop database, re-run migrations, re-seed |
-| `npx prisma studio` | Open interactive database browser (GUI) |
-| `npm run dev` | Start API server (localhost:3000) |
-| `npm test` | Run all tests including seed E2E |
-| `SEED_VERBOSE=true npm run db:seed` | Seed with detailed logging |
+| `bun run db:migrate` | Apply pending migrations |
+| `bun run db:seed` | Populate database with sample data |
+| `bun run db:reset` | Drop database and re-run migrations (then run db:seed to re-seed) |
+| `bun run db:studio` | Open Prisma Studio (interactive database browser) |
+| `bun run dev` | Start API server (localhost:3000) |
+| `bun run check` | Run format, lint, and tests (recommended) |
+| `bun test` | Run all tests (including seed integration and E2E) |
+| `SEED_VERBOSE=true bun run db:seed` | Seed with detailed logging |
 
 ---
 
