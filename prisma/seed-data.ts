@@ -11,13 +11,13 @@
  * All data is deterministic (same input = same output) and vegan-aligned.
  */
 
-import { v5 as uuidv5 } from "uuid";
-import { StorageType } from "../src/domain/shared/storage-type.enum";
+import { v5 as uuidv5 } from 'uuid';
+import { StorageType } from '../src/domain/shared/storage-type.enum';
 
 /**
  * Namespace UUID for deterministic v5 generation
  */
-const SEED_NAMESPACE = "550e8400-e29b-41d4-a716-446655440000";
+const SEED_NAMESPACE = '550e8400-e29b-41d4-a716-446655440000';
 
 /**
  * Generate a deterministic UUID v5 from a seed string
@@ -32,19 +32,22 @@ export function deterministicUuid(seed: string): string {
  */
 export const SEED_TENANTS = [
   {
-    id: deterministicUuid("Tenant-1"),
-    name: "Test Tenant 1",
+    id: deterministicUuid('Tenant-1'),
+    name: 'Test Tenant 1',
   },
   {
-    id: deterministicUuid("Tenant-2"),
-    name: "Test Tenant 2",
+    id: deterministicUuid('Tenant-2'),
+    name: 'Test Tenant 2',
   },
 ];
 
 /**
- * System user (creator of meals) - same for all tenants
+ * System user (creator of meals) - one per tenant for tenant isolation.
+ * Use getSystemUserIdForTenant(tenantId) to get the deterministic ID for a tenant.
  */
-export const SYSTEM_USER_ID = deterministicUuid("System-User");
+export function getSystemUserIdForTenant(tenantId: string): string {
+  return deterministicUuid(`System-User-${tenantId}`);
+}
 
 /**
  * Ingredient seed data (15 vegan ingredients per tenant)
@@ -57,27 +60,27 @@ export const SYSTEM_USER_ID = deterministicUuid("System-User");
  */
 export const SEED_INGREDIENTS = [
   // FRIDGE (4)
-  { name: "Tofu", storageType: StorageType.FRIDGE, staple: true },
-  { name: "Tempeh", storageType: StorageType.FRIDGE, staple: true },
-  { name: "Fresh Spinach", storageType: StorageType.FRIDGE, staple: false },
-  { name: "Coconut Milk", storageType: StorageType.FRIDGE, staple: true },
+  { name: 'Tofu', storageType: StorageType.FRIDGE, staple: true },
+  { name: 'Tempeh', storageType: StorageType.FRIDGE, staple: true },
+  { name: 'Fresh Spinach', storageType: StorageType.FRIDGE, staple: false },
+  { name: 'Coconut Milk', storageType: StorageType.FRIDGE, staple: true },
 
   // PANTRY (6)
-  { name: "Pasta", storageType: StorageType.PANTRY, staple: true },
-  { name: "Rice", storageType: StorageType.PANTRY, staple: true },
-  { name: "Olive Oil", storageType: StorageType.PANTRY, staple: true },
-  { name: "Garlic", storageType: StorageType.PANTRY, staple: true },
-  { name: "Onion", storageType: StorageType.PANTRY, staple: false },
-  { name: "Canned Tomatoes", storageType: StorageType.PANTRY, staple: true },
+  { name: 'Pasta', storageType: StorageType.PANTRY, staple: true },
+  { name: 'Rice', storageType: StorageType.PANTRY, staple: true },
+  { name: 'Olive Oil', storageType: StorageType.PANTRY, staple: true },
+  { name: 'Garlic', storageType: StorageType.PANTRY, staple: true },
+  { name: 'Onion', storageType: StorageType.PANTRY, staple: false },
+  { name: 'Canned Tomatoes', storageType: StorageType.PANTRY, staple: true },
 
   // FROZEN (3)
-  { name: "Frozen Broccoli", storageType: StorageType.FROZEN, staple: false },
-  { name: "Frozen Peas", storageType: StorageType.FROZEN, staple: false },
-  { name: "Frozen Spinach", storageType: StorageType.FROZEN, staple: false },
+  { name: 'Frozen Broccoli', storageType: StorageType.FROZEN, staple: false },
+  { name: 'Frozen Peas', storageType: StorageType.FROZEN, staple: false },
+  { name: 'Frozen Spinach', storageType: StorageType.FROZEN, staple: false },
 
   // OTHER (2)
-  { name: "Nutritional Yeast", storageType: StorageType.OTHER, staple: true },
-  { name: "Cashew Butter", storageType: StorageType.OTHER, staple: false },
+  { name: 'Nutritional Yeast', storageType: StorageType.OTHER, staple: true },
+  { name: 'Cashew Butter', storageType: StorageType.OTHER, staple: false },
 ];
 
 /**
@@ -92,9 +95,9 @@ export const SEED_INGREDIENTS = [
  */
 export const SEED_MEALS = [
   {
-    mealName: "Creamy Cashew Alfredo Pasta",
-    recipeLink: "https://example.com/cashew-alfredo",
-    mealImageId: "img-001",
+    mealName: 'Creamy Cashew Alfredo Pasta',
+    recipeLink: 'https://example.com/cashew-alfredo',
+    mealImageId: 'img-001',
     qualities: {
       isDinner: true,
       isLunch: false,
@@ -105,12 +108,12 @@ export const SEED_MEALS = [
       isEasyToMake: false,
       needsPrep: true,
     },
-    ingredients: ["Pasta", "Cashew Butter", "Garlic", "Fresh Spinach", "Olive Oil"],
+    ingredients: ['Pasta', 'Cashew Butter', 'Garlic', 'Fresh Spinach', 'Olive Oil'],
   },
   {
-    mealName: "Lentil Bolognese",
-    recipeLink: "https://example.com/lentil-bolognese",
-    mealImageId: "img-002",
+    mealName: 'Lentil Bolognese',
+    recipeLink: 'https://example.com/lentil-bolognese',
+    mealImageId: 'img-002',
     qualities: {
       isDinner: true,
       isLunch: true,
@@ -121,12 +124,12 @@ export const SEED_MEALS = [
       isEasyToMake: true,
       needsPrep: false,
     },
-    ingredients: ["Pasta", "Canned Tomatoes", "Onion", "Garlic", "Olive Oil"],
+    ingredients: ['Pasta', 'Canned Tomatoes', 'Onion', 'Garlic', 'Olive Oil'],
   },
   {
-    mealName: "Tofu Stir-Fry",
-    recipeLink: "https://example.com/tofu-stir-fry",
-    mealImageId: "img-003",
+    mealName: 'Tofu Stir-Fry',
+    recipeLink: 'https://example.com/tofu-stir-fry',
+    mealImageId: 'img-003',
     qualities: {
       isDinner: true,
       isLunch: true,
@@ -137,12 +140,12 @@ export const SEED_MEALS = [
       isEasyToMake: true,
       needsPrep: true,
     },
-    ingredients: ["Tofu", "Rice", "Frozen Broccoli", "Garlic", "Olive Oil"],
+    ingredients: ['Tofu', 'Rice', 'Frozen Broccoli', 'Garlic', 'Olive Oil'],
   },
   {
-    mealName: "Tempeh Buddha Bowl",
-    recipeLink: "https://example.com/tempeh-buddha",
-    mealImageId: "img-004",
+    mealName: 'Tempeh Buddha Bowl',
+    recipeLink: 'https://example.com/tempeh-buddha',
+    mealImageId: 'img-004',
     qualities: {
       isDinner: true,
       isLunch: true,
@@ -153,12 +156,12 @@ export const SEED_MEALS = [
       isEasyToMake: true,
       needsPrep: true,
     },
-    ingredients: ["Tempeh", "Rice", "Fresh Spinach", "Frozen Peas", "Nutritional Yeast"],
+    ingredients: ['Tempeh', 'Rice', 'Fresh Spinach', 'Frozen Peas', 'Nutritional Yeast'],
   },
   {
-    mealName: "Creamy Tomato Soup",
-    recipeLink: "https://example.com/creamy-tomato-soup",
-    mealImageId: "img-005",
+    mealName: 'Creamy Tomato Soup',
+    recipeLink: 'https://example.com/creamy-tomato-soup',
+    mealImageId: 'img-005',
     qualities: {
       isDinner: true,
       isLunch: true,
@@ -169,12 +172,12 @@ export const SEED_MEALS = [
       isEasyToMake: true,
       needsPrep: false,
     },
-    ingredients: ["Canned Tomatoes", "Coconut Milk", "Onion", "Garlic", "Olive Oil"],
+    ingredients: ['Canned Tomatoes', 'Coconut Milk', 'Onion', 'Garlic', 'Olive Oil'],
   },
   {
-    mealName: "Garlic Rice with Greens",
-    recipeLink: "https://example.com/garlic-rice-greens",
-    mealImageId: "img-006",
+    mealName: 'Garlic Rice with Greens',
+    recipeLink: 'https://example.com/garlic-rice-greens',
+    mealImageId: 'img-006',
     qualities: {
       isDinner: true,
       isLunch: true,
@@ -185,12 +188,12 @@ export const SEED_MEALS = [
       isEasyToMake: true,
       needsPrep: false,
     },
-    ingredients: ["Rice", "Frozen Spinach", "Garlic", "Olive Oil", "Nutritional Yeast"],
+    ingredients: ['Rice', 'Frozen Spinach', 'Garlic', 'Olive Oil', 'Nutritional Yeast'],
   },
   {
-    mealName: "Crispy Tofu & Vegetables",
-    recipeLink: "https://example.com/crispy-tofu",
-    mealImageId: "img-007",
+    mealName: 'Crispy Tofu & Vegetables',
+    recipeLink: 'https://example.com/crispy-tofu',
+    mealImageId: 'img-007',
     qualities: {
       isDinner: true,
       isLunch: false,
@@ -201,12 +204,12 @@ export const SEED_MEALS = [
       isEasyToMake: false,
       needsPrep: true,
     },
-    ingredients: ["Tofu", "Frozen Broccoli", "Olive Oil", "Garlic", "Onion"],
+    ingredients: ['Tofu', 'Frozen Broccoli', 'Olive Oil', 'Garlic', 'Onion'],
   },
   {
-    mealName: "Pea & Coconut Curry",
-    recipeLink: "https://example.com/pea-curry",
-    mealImageId: "img-008",
+    mealName: 'Pea & Coconut Curry',
+    recipeLink: 'https://example.com/pea-curry',
+    mealImageId: 'img-008',
     qualities: {
       isDinner: true,
       isLunch: true,
@@ -217,12 +220,12 @@ export const SEED_MEALS = [
       isEasyToMake: true,
       needsPrep: false,
     },
-    ingredients: ["Frozen Peas", "Coconut Milk", "Rice", "Garlic", "Onion"],
+    ingredients: ['Frozen Peas', 'Coconut Milk', 'Rice', 'Garlic', 'Onion'],
   },
   {
-    mealName: "Spinach & Mushroom Pasta",
-    recipeLink: "https://example.com/spinach-pasta",
-    mealImageId: "img-009",
+    mealName: 'Spinach & Mushroom Pasta',
+    recipeLink: 'https://example.com/spinach-pasta',
+    mealImageId: 'img-009',
     qualities: {
       isDinner: true,
       isLunch: true,
@@ -233,12 +236,12 @@ export const SEED_MEALS = [
       isEasyToMake: true,
       needsPrep: true,
     },
-    ingredients: ["Pasta", "Frozen Spinach", "Coconut Milk", "Garlic", "Olive Oil"],
+    ingredients: ['Pasta', 'Frozen Spinach', 'Coconut Milk', 'Garlic', 'Olive Oil'],
   },
   {
-    mealName: "Tempeh Tacos",
-    recipeLink: "https://example.com/tempeh-tacos",
-    mealImageId: "img-010",
+    mealName: 'Tempeh Tacos',
+    recipeLink: 'https://example.com/tempeh-tacos',
+    mealImageId: 'img-010',
     qualities: {
       isDinner: true,
       isLunch: true,
@@ -249,7 +252,7 @@ export const SEED_MEALS = [
       isEasyToMake: true,
       needsPrep: true,
     },
-    ingredients: ["Tempeh", "Onion", "Garlic", "Fresh Spinach", "Nutritional Yeast"],
+    ingredients: ['Tempeh', 'Onion', 'Garlic', 'Fresh Spinach', 'Nutritional Yeast'],
   },
 ];
 
@@ -258,34 +261,77 @@ export const SEED_MEALS = [
  *
  * Includes:
  * - weekStartDay: Start day for planned weeks
- * - dailyPreferences: Per-day quality preferences (7 days)
+ * - dailyPreferences: Array of 7 entries (one per day) with boolean quality flags
+ *   for GetEligibleMealsUseCase compatibility.
  */
 export const SEED_USER_SETTINGS = [
   {
     tenantId: SEED_TENANTS[0].id,
-    weekStartDay: "MONDAY" as const,
-    dailyPreferences: {
-      MONDAY: { creamy: 0.3, acidic: 0.2, greenVeg: 0.5, easy: 0.4 },
-      TUESDAY: { creamy: 0.2, acidic: 0.3, greenVeg: 0.4, easy: 0.5 },
-      WEDNESDAY: { creamy: 0.4, acidic: 0.1, greenVeg: 0.6, easy: 0.3 },
-      THURSDAY: { creamy: 0.5, acidic: 0.2, greenVeg: 0.3, easy: 0.6 },
-      FRIDAY: { creamy: 0.3, acidic: 0.4, greenVeg: 0.5, easy: 0.2 },
-      SATURDAY: { creamy: 0.6, acidic: 0.1, greenVeg: 0.4, easy: 0.1 },
-      SUNDAY: { creamy: 0.5, acidic: 0.3, greenVeg: 0.5, easy: 0.4 },
-    },
+    weekStartDay: 'MONDAY' as const,
+    dailyPreferences: [
+      {
+        day: 'MONDAY',
+        preferences: { isCreamy: true, isAcidic: false, greenVeg: true, isEasyToMake: true },
+      },
+      {
+        day: 'TUESDAY',
+        preferences: { isCreamy: false, isAcidic: true, greenVeg: true, isEasyToMake: true },
+      },
+      {
+        day: 'WEDNESDAY',
+        preferences: { isCreamy: true, isAcidic: false, greenVeg: false, isEasyToMake: false },
+      },
+      {
+        day: 'THURSDAY',
+        preferences: { isCreamy: true, isAcidic: true, greenVeg: true, isEasyToMake: true },
+      },
+      {
+        day: 'FRIDAY',
+        preferences: { isCreamy: true, isAcidic: true, greenVeg: true, isEasyToMake: false },
+      },
+      {
+        day: 'SATURDAY',
+        preferences: { isCreamy: true, isAcidic: false, greenVeg: true, isEasyToMake: false },
+      },
+      {
+        day: 'SUNDAY',
+        preferences: { isCreamy: true, isAcidic: true, greenVeg: true, isEasyToMake: true },
+      },
+    ],
   },
   {
     tenantId: SEED_TENANTS[1].id,
-    weekStartDay: "SUNDAY" as const,
-    dailyPreferences: {
-      SUNDAY: { creamy: 0.4, acidic: 0.3, greenVeg: 0.6, easy: 0.3 },
-      MONDAY: { creamy: 0.2, acidic: 0.5, greenVeg: 0.3, easy: 0.6 },
-      TUESDAY: { creamy: 0.5, acidic: 0.2, greenVeg: 0.4, easy: 0.2 },
-      WEDNESDAY: { creamy: 0.3, acidic: 0.4, greenVeg: 0.5, easy: 0.5 },
-      THURSDAY: { creamy: 0.6, acidic: 0.1, greenVeg: 0.5, easy: 0.3 },
-      FRIDAY: { creamy: 0.4, acidic: 0.3, greenVeg: 0.6, easy: 0.4 },
-      SATURDAY: { creamy: 0.5, acidic: 0.2, greenVeg: 0.4, easy: 0.2 },
-    },
+    weekStartDay: 'SUNDAY' as const,
+    dailyPreferences: [
+      {
+        day: 'SUNDAY',
+        preferences: { isCreamy: true, isAcidic: true, greenVeg: true, isEasyToMake: false },
+      },
+      {
+        day: 'MONDAY',
+        preferences: { isCreamy: false, isAcidic: true, greenVeg: false, isEasyToMake: true },
+      },
+      {
+        day: 'TUESDAY',
+        preferences: { isCreamy: true, isAcidic: false, greenVeg: true, isEasyToMake: false },
+      },
+      {
+        day: 'WEDNESDAY',
+        preferences: { isCreamy: false, isAcidic: true, greenVeg: true, isEasyToMake: true },
+      },
+      {
+        day: 'THURSDAY',
+        preferences: { isCreamy: true, isAcidic: false, greenVeg: true, isEasyToMake: false },
+      },
+      {
+        day: 'FRIDAY',
+        preferences: { isCreamy: true, isAcidic: true, greenVeg: true, isEasyToMake: true },
+      },
+      {
+        day: 'SATURDAY',
+        preferences: { isCreamy: true, isAcidic: false, greenVeg: true, isEasyToMake: false },
+      },
+    ],
   },
 ];
 
@@ -304,7 +350,15 @@ export function getNextMonday(fromDate: Date = new Date()): Date {
  * Get day of week name from date
  */
 export function getDayOfWeek(date: Date): keyof typeof DayOfWeekMap {
-  const days = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"] as const;
+  const days = [
+    'SUNDAY',
+    'MONDAY',
+    'TUESDAY',
+    'WEDNESDAY',
+    'THURSDAY',
+    'FRIDAY',
+    'SATURDAY',
+  ] as const;
   return days[date.getDay()];
 }
 
@@ -312,7 +366,7 @@ export function getDayOfWeek(date: Date): keyof typeof DayOfWeekMap {
  * Get short day abbreviation
  */
 export function getShortDay(date: Date): string {
-  const shortDays = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+  const shortDays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
   return shortDays[date.getDay()];
 }
 
@@ -320,24 +374,24 @@ export function getShortDay(date: Date): string {
  * Day of week mapping for Prisma enum
  */
 export const DayOfWeekMap = {
-  SUNDAY: "SUNDAY",
-  MONDAY: "MONDAY",
-  TUESDAY: "TUESDAY",
-  WEDNESDAY: "WEDNESDAY",
-  THURSDAY: "THURSDAY",
-  FRIDAY: "FRIDAY",
-  SATURDAY: "SATURDAY",
+  SUNDAY: 'SUNDAY',
+  MONDAY: 'MONDAY',
+  TUESDAY: 'TUESDAY',
+  WEDNESDAY: 'WEDNESDAY',
+  THURSDAY: 'THURSDAY',
+  FRIDAY: 'FRIDAY',
+  SATURDAY: 'SATURDAY',
 } as const;
 
 /**
  * Short day mapping for Prisma enum
  */
 export const ShortDayMap = {
-  SUN: "SUN",
-  MON: "MON",
-  TUE: "TUE",
-  WED: "WED",
-  THU: "THU",
-  FRI: "FRI",
-  SAT: "SAT",
+  SUN: 'SUN',
+  MON: 'MON',
+  TUE: 'TUE',
+  WED: 'WED',
+  THU: 'THU',
+  FRI: 'FRI',
+  SAT: 'SAT',
 } as const;

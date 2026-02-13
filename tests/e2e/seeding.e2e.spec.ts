@@ -1,6 +1,11 @@
 import { describe, test, expect, beforeAll } from 'bun:test';
+import { GetEligibleMealsUseCase } from '@/application/meal/get-eligible-meals.usecase';
+import { GetEligibleMealsUserSettingsRepositoryAdapter } from '@/infrastructure/adapters/get-eligible-meals-user-settings.adapter';
+import { PrismaMealRepository } from '@/infrastructure/database/repositories/prisma-meal.repository';
+import { PrismaUserSettingsRepository } from '@/infrastructure/database/repositories/prisma-user-settings.repository';
 import { resetDatabase, getTestPrisma } from '../setup';
 import { seedDatabase } from '../../prisma/seed-utils';
+import { SEED_TENANTS } from '../../prisma/seed-data';
 
 /**
  * E2E Tests: Database Seeding (US1)
@@ -248,5 +253,58 @@ describe('Database Seeding (E2E)', () => {
 
     // Verify we have a good variety of vegan ingredients
     expect(ingredients.length).toBeGreaterThanOrEqual(30);
+  });
+
+  describe('Eligible meals endpoint with seeded data (US3)', () => {
+    const mealRepository = new PrismaMealRepository(prisma);
+    const userSettingsRepository = new PrismaUserSettingsRepository(prisma);
+    const eligibleSettingsAdapter = new GetEligibleMealsUserSettingsRepositoryAdapter(
+      userSettingsRepository
+    );
+    const getEligibleMealsUseCase = new GetEligibleMealsUseCase(
+      mealRepository,
+      eligibleSettingsAdapter
+    );
+
+    test('GET eligible meals for Monday lunch returns only lunch-suitable meals', async () => {
+      const tenantId = SEED_TENANTS[0].id;
+      const meals = await getEligibleMealsUseCase.execute({
+        tenantId,
+        date: '2026-02-16', // Monday
+        mealType: 'lunch',
+      });
+      expect(Array.isArray(meals)).toBe(true);
+      meals.forEach(meal => {
+        expect(meal.qualities.isLunch).toBe(true);
+      });
+      expect(meals.length).toBeGreaterThanOrEqual(1);
+    });
+
+    test('GET eligible meals for Monday dinner returns only dinner-suitable meals', async () => {
+      const tenantId = SEED_TENANTS[0].id;
+      const meals = await getEligibleMealsUseCase.execute({
+        tenantId,
+        date: '2026-02-16',
+        mealType: 'dinner',
+      });
+      expect(Array.isArray(meals)).toBe(true);
+      meals.forEach(meal => {
+        expect(meal.qualities.isDinner).toBe(true);
+      });
+      expect(meals.length).toBeGreaterThanOrEqual(1);
+    });
+
+    test('eligible meals for tenant 2 are isolated from tenant 1', async () => {
+      const tenant2Id = SEED_TENANTS[1].id;
+      const meals = await getEligibleMealsUseCase.execute({
+        tenantId: tenant2Id,
+        date: '2026-02-15', // Sunday (tenant 2 week starts Sunday)
+        mealType: 'lunch',
+      });
+      expect(Array.isArray(meals)).toBe(true);
+      meals.forEach(meal => {
+        expect(meal.qualities.isLunch).toBe(true);
+      });
+    });
   });
 });

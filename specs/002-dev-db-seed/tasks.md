@@ -169,13 +169,13 @@ This document breaks down the seed file implementation into concrete, actionable
 
 ### Implementation Tasks
 
-- [ ] T029 [US3] Verify meal quality diversity in seed data
+- [X] T029 [US3] Verify meal quality diversity in seed data
   - File: `tests/integration/seeding.integration.spec.ts` or separate script
   - Acceptance: Audit seeded meals (10 per tenant); verify 9 qualities covered; at least 2 meals per quality; lunch/dinner flags consistent with assignments
-- [ ] T030 [P] [US3] Create integration test for quality-based filtering with seeded data
+- [X] T030 [P] [US3] Create integration test for quality-based filtering with seeded data
   - File: `tests/integration/seeding.integration.spec.ts`
   - Acceptance: Test queries eligible meals for Monday lunch (creamy preference); verifies only creamy meals marked isLunch are returned; tests 3+ day/preference combinations
-- [ ] T031 [US3] Create E2E test for eligible meals endpoint with seeded data
+- [X] T031 [US3] Create E2E test for eligible meals endpoint with seeded data
   - File: `tests/e2e/seeding.e2e.spec.ts`
   - Acceptance: E2E test calls `/meals/eligible?date=...&mealType=lunch` with authentication; verifies results match seeded quality preferences; tests both hit and miss cases
 

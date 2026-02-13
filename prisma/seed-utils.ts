@@ -19,7 +19,7 @@ import {
   SEED_INGREDIENTS,
   SEED_MEALS,
   SEED_USER_SETTINGS,
-  SYSTEM_USER_ID,
+  getSystemUserIdForTenant,
   deterministicUuid,
   getNextMonday,
   getDayOfWeek,
@@ -125,29 +125,30 @@ export interface SeedResult {
 }
 
 /**
- * Create a system user for meal creation
- * All seeded meals are attributed to this system user
+ * Create or return the system user for a given tenant.
+ * Each tenant has its own system user so meal.createdBy respects tenant isolation.
  */
-async function ensureSystemUser(prisma: PrismaClient): Promise<string> {
-  const defaultTenant = SEED_TENANTS[0];
+async function ensureSystemUser(
+  prisma: PrismaClient,
+  tenantId: string
+): Promise<string> {
+  const systemUserId = getSystemUserIdForTenant(tenantId);
 
-  // Check if system user exists
-  let user = await prisma.user.findFirst({
-    where: { id: SYSTEM_USER_ID },
+  let user = await prisma.user.findUnique({
+    where: { id: systemUserId },
   });
 
   if (!user) {
-    // Create system user
     user = await prisma.user.create({
       data: {
-        id: SYSTEM_USER_ID,
-        email: "system@seed.local",
+        id: systemUserId,
+        email: `system-${tenantId}@seed.local`,
         nickname: "System",
-        tenantId: defaultTenant.id,
+        tenantId,
         isTenantAdmin: false,
       },
     });
-    logVerbose(`Created system user: ${SYSTEM_USER_ID}`);
+    logVerbose(`Created system user for tenant ${tenantId}: ${systemUserId}`);
   }
 
   return user.id;
@@ -211,12 +212,11 @@ export async function seedDatabase(prisma: PrismaClient): Promise<SeedResult> {
       logVerbose(`  Created tenant: ${tenant.name}`);
     }
 
-    // 2. Create system user
-    logVerbose("Ensuring system user exists...");
-    const systemUserId = await ensureSystemUser(prisma);
-
-    // 3-5. For each tenant: create ingredients, meals, and relationships (US2: tenant-scoped; no shared data)
+    // 2-5. For each tenant: ensure system user, create ingredients, meals, and relationships (US2: tenant-scoped; no shared data)
     for (const tenant of SEED_TENANTS) {
+      logVerbose(`Ensuring system user for tenant ${tenant.id}...`);
+      const systemUserId = await ensureSystemUser(prisma, tenant.id);
+
       // Create ingredients (15 per tenant; each receives tenantId; 30 total, no shared ingredients)
       logVerbose(`Creating ingredients for tenant ${tenant.id}...`);
       const ingredientMap: Record<string, string> = {};

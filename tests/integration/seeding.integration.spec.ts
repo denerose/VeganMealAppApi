@@ -6,10 +6,52 @@ import {
   checkIdempotency,
   seedDatabase,
 } from '../../prisma/seed-utils';
-import { SEED_TENANTS } from '../../prisma/seed-data';
+import { SEED_TENANTS, SEED_MEALS } from '../../prisma/seed-data';
+import { PrismaMealRepository } from '@/infrastructure/database/repositories/prisma-meal.repository';
 import { resetDatabase, getTestPrisma } from '../setup';
 
+const QUALITY_KEYS = [
+  'isDinner',
+  'isLunch',
+  'isCreamy',
+  'isAcidic',
+  'greenVeg',
+  'makesLunch',
+  'isEasyToMake',
+  'needsPrep',
+] as const;
+
 const prisma = getTestPrisma();
+
+describe('Meal quality diversity in seed data (static audit, no DB)', () => {
+  test('SEED_MEALS has exactly 10 meals', () => {
+    expect(SEED_MEALS.length).toBe(10);
+  });
+
+  test('all 8 quality dimensions are covered with at least 2 meals per quality', () => {
+    for (const key of QUALITY_KEYS) {
+      const count = SEED_MEALS.filter(m => m.qualities[key] === true).length;
+      expect(count).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  test('lunch/dinner flags consistent: every isLunch meal is also isDinner', () => {
+    SEED_MEALS.forEach(meal => {
+      if (meal.qualities.isLunch) {
+        expect(meal.qualities.isDinner).toBe(true);
+      }
+    });
+  });
+
+  test('at least one meal is lunch-suitable and one is dinner-only', () => {
+    const hasLunchSuitable = SEED_MEALS.some(m => m.qualities.isLunch === true);
+    const hasDinnerOnly = SEED_MEALS.some(
+      m => m.qualities.isDinner === true && m.qualities.isLunch === false
+    );
+    expect(hasLunchSuitable).toBe(true);
+    expect(hasDinnerOnly).toBe(true);
+  });
+});
 
 describe('Seed Utilities', () => {
   describe('deterministicUuid()', () => {
@@ -205,6 +247,139 @@ describe('Seed Utilities', () => {
       expect(ingredients.length).toBe(15);
       ingredients.forEach(ing => {
         expect(ing.tenantId).toBe(tenant2Id);
+      });
+    });
+  });
+
+  describe('Meal quality diversity (US3)', () => {
+    beforeAll(async () => {
+      await resetDatabase();
+      await seedDatabase(prisma);
+    });
+
+    test('each tenant has exactly 10 seeded meals with qualities', async () => {
+      for (const tenant of SEED_TENANTS) {
+        const meals = await prisma.meal.findMany({
+          where: { tenantId: tenant.id },
+          include: { qualities: true },
+        });
+        expect(meals.length).toBe(10);
+        meals.forEach(meal => {
+          expect(meal.qualities).toBeDefined();
+        });
+      }
+    });
+
+    test('all 8 quality dimensions are covered with at least 2 meals per quality', async () => {
+      const tenantId = SEED_TENANTS[0].id;
+      const meals = await prisma.meal.findMany({
+        where: { tenantId },
+        include: { qualities: true },
+      });
+      expect(meals.length).toBe(10);
+
+      for (const key of QUALITY_KEYS) {
+        const count = meals.filter(
+          m => m.qualities && (m.qualities as Record<string, boolean>)[key] === true
+        ).length;
+        expect(count).toBeGreaterThanOrEqual(2);
+      }
+    });
+
+    test('lunch/dinner flags are consistent (isLunch meals are dinner-suitable)', async () => {
+      const tenantId = SEED_TENANTS[0].id;
+      const meals = await prisma.meal.findMany({
+        where: { tenantId },
+        include: { qualities: true },
+      });
+      meals.forEach(meal => {
+        const q = meal.qualities as Record<string, boolean> | null;
+        if (!q) return;
+        if (q.isLunch) {
+          expect(q.isDinner).toBe(true);
+        }
+      });
+    });
+
+    test('at least one meal is lunch-suitable and one is dinner-only', async () => {
+      const tenantId = SEED_TENANTS[0].id;
+      const meals = await prisma.meal.findMany({
+        where: { tenantId },
+        include: { qualities: true },
+      });
+      const hasLunchSuitable = meals.some(
+        m => (m.qualities as Record<string, boolean>)?.isLunch === true
+      );
+      const hasDinnerOnly = meals.some(m => {
+        const q = m.qualities as Record<string, boolean> | null;
+        return q?.isDinner === true && q?.isLunch === false;
+      });
+      expect(hasLunchSuitable).toBe(true);
+      expect(hasDinnerOnly).toBe(true);
+    });
+  });
+
+  describe('Quality-based filtering with seeded data (US3)', () => {
+    const mealRepository = new PrismaMealRepository(prisma);
+
+    beforeAll(async () => {
+      await resetDatabase();
+      await seedDatabase(prisma);
+    });
+
+    test('Monday lunch with creamy preference returns only isLunch and isCreamy meals', async () => {
+      const tenantId = SEED_TENANTS[0].id;
+      const meals = await mealRepository.findByQualities(tenantId, {
+        isArchived: false,
+        isLunch: true,
+        isCreamy: true,
+      });
+      expect(meals.length).toBeGreaterThanOrEqual(1);
+      meals.forEach(meal => {
+        expect(meal.qualities.isLunch).toBe(true);
+        expect(meal.qualities.isCreamy).toBe(true);
+      });
+    });
+
+    test('Dinner with acidic preference returns only isDinner and isAcidic meals', async () => {
+      const tenantId = SEED_TENANTS[0].id;
+      const meals = await mealRepository.findByQualities(tenantId, {
+        isArchived: false,
+        isDinner: true,
+        isAcidic: true,
+      });
+      expect(meals.length).toBeGreaterThanOrEqual(1);
+      meals.forEach(meal => {
+        expect(meal.qualities.isDinner).toBe(true);
+        expect(meal.qualities.isAcidic).toBe(true);
+      });
+    });
+
+    test('Lunch with greenVeg preference returns only isLunch and greenVeg meals', async () => {
+      const tenantId = SEED_TENANTS[0].id;
+      const meals = await mealRepository.findByQualities(tenantId, {
+        isArchived: false,
+        isLunch: true,
+        greenVeg: true,
+      });
+      expect(meals.length).toBeGreaterThanOrEqual(1);
+      meals.forEach(meal => {
+        expect(meal.qualities.isLunch).toBe(true);
+        expect(meal.qualities.greenVeg).toBe(true);
+      });
+    });
+
+    test('Combined filter isLunch + isEasyToMake returns only matching meals', async () => {
+      const tenantId = SEED_TENANTS[0].id;
+      const meals = await mealRepository.findByQualities(tenantId, {
+        isArchived: false,
+        isLunch: true,
+        isEasyToMake: true,
+      });
+      expect(meals.length).toBeGreaterThanOrEqual(1);
+      meals.forEach(meal => {
+        expect(meal.qualities.isLunch).toBe(true);
+        expect(meal.qualities.isEasyToMake).toBe(true);
       });
     });
   });
