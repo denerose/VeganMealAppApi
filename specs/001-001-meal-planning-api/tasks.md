@@ -7,7 +7,7 @@
 - [X] T001 [P] Scaffold Clean Architecture directories in `src/` and `tests/` per `plan.md`
 - [X] T002 [P] Initialize Bun+TypeScript project config in `package.json` and `tsconfig.json` (strict, ESNext, bundler)
 - [X] T003 [P] Configure lint/format tooling in `.eslintrc.json`, `.prettierrc`, and add scripts in `package.json`
-- [X] T004 [P] Add PostgreSQL docker compose and environment template in `docker-compose.yml` and `.env.example`
+- [X] T004 [P] Add PostgreSQL podman compose and environment template in `docker-compose.yml` and `.env.example`
 - [X] T005 [P] Add Bun scripts for dev/build/test/lint/type-check in `package.json`
 
 ## Phase 2: Foundational (Blocking Prerequisites)
@@ -40,14 +40,14 @@
 - [X] T021 [P] [US1] Implement PlannedWeek aggregate and DayPlan entity with leftover logic in `src/domain/planned-week/`
 - [X] T022 [P] [US1] Implement planned-week repository interface in `src/domain/planned-week/planned-week.repository.ts`
 - [X] T023 [P] [US1] Implement planned-week use cases (create week, assign meal, get week, delete week, populate leftovers) in `src/application/planned-week/`
-- [ ] T024 [P] [US1] Implement eligible meals filtering use case (FR-007) in `src/application/meal/get-eligible-meals.usecase.ts`
-- [ ] T025 [P] [US1] Add Prisma planned-week repository in `src/infrastructure/database/repositories/prisma-planned-week.repository.ts`
-- [ ] T026 [P] [US1] Add DTOs and validators for planned weeks/day plans in `src/infrastructure/http/dtos/planned-week.dto.ts`
-- [ ] T027 [US1] Implement planned-week HTTP controller and routes in `src/infrastructure/http/controllers/planned-week.controller.ts` and `routes/index.ts`
-- [ ] T028 [US1] Implement day-plan PATCH controller for meal assignments in `src/infrastructure/http/controllers/day-plan.controller.ts`
-- [ ] T029 [US1] Expose eligible meals endpoint handler in `src/infrastructure/http/controllers/meal.controller.ts` (eligible action only)
-- [ ] T030 [US1] Wire DI container bindings for planned-week and eligible-meal services in `src/infrastructure/di/container.ts`
-- [ ] T031 [US1] Add integration tests for planned-week repository in `tests/integration/repositories/planned-week.repository.spec.ts`
+- [X] T024 [P] [US1] Implement eligible meals filtering use case (FR-007) in `src/application/meal/get-eligible-meals.usecase.ts`
+- [X] T025 [P] [US1] Add Prisma planned-week repository in `src/infrastructure/database/repositories/prisma-planned-week.repository.ts`
+- [X] T026 [P] [US1] Add DTOs and validators for planned weeks/day plans in `src/infrastructure/http/dtos/planned-week.dto.ts`
+- [X] T027 [US1] Implement planned-week HTTP controller and routes in `src/infrastructure/http/controllers/planned-week.controller.ts` and `routes/index.ts`
+- [X] T028 [US1] Implement day-plan PATCH controller for meal assignments in `src/infrastructure/http/controllers/day-plan.controller.ts`
+- [X] T029 [US1] Expose eligible meals endpoint handler in `src/infrastructure/http/controllers/meal.controller.ts` (eligible action only)
+- [X] T030 [US1] Wire DI container bindings for planned-week and eligible-meal services in `src/infrastructure/di/container.ts`
+- [X] T031 [US1] Add integration tests for planned-week repository in `tests/integration/repositories/planned-week.repository.spec.ts`
 
 ## Phase 4: User Story 2 - Build and Maintain Personal Meal Library (Priority: P2)
 
@@ -56,22 +56,22 @@
 **Independent Test**: Create meals with qualities/ingredients, update meal and ingredient details, archive meals (remain visible in history, excluded from active lists), and list meals with filters.
 
 ### Tests (write first)
-- [ ] T032 [P] [US2] Write e2e tests for meal CRUD endpoints in `tests/e2e/meal.e2e.spec.ts`
-- [ ] T033 [P] [US2] Write e2e tests for ingredient CRUD endpoints in `tests/e2e/ingredient.e2e.spec.ts`
-- [ ] T034 [P] [US2] Write unit tests for Meal entity and MealQualities mutual exclusivity in `tests/unit/domain/meal/meal.spec.ts`
-- [ ] T035 [P] [US2] Write unit tests for Ingredient entity and storage type validation in `tests/unit/domain/ingredient/ingredient.spec.ts`
+- [X] T032 [P] [US2] Write e2e tests for meal CRUD endpoints in `tests/e2e/meal.e2e.spec.ts`
+- [X] T033 [P] [US2] Write e2e tests for ingredient CRUD endpoints in `tests/e2e/ingredient.e2e.spec.ts`
+- [X] T034 [P] [US2] Write unit tests for Meal entity and MealQualities mutual exclusivity in `tests/unit/domain/meal/meal.spec.ts`
+- [X] T035 [P] [US2] Write unit tests for Ingredient entity and storage type validation in `tests/unit/domain/ingredient/ingredient.spec.ts`
 
 ### Implementation
-- [ ] T036 [P] [US2] Implement Meal entity and MealQualities value object in `src/domain/meal/`
-- [ ] T037 [P] [US2] Implement Ingredient entity in `src/domain/ingredient/ingredient.entity.ts`
-- [ ] T038 [P] [US2] Implement meal and ingredient repository interfaces in `src/domain/meal/meal.repository.ts` and `src/domain/ingredient/ingredient.repository.ts`
-- [ ] T039 [P] [US2] Implement meal use cases (create, update, archive, list) in `src/application/meal/`
-- [ ] T040 [P] [US2] Implement ingredient use cases (create, update, delete, list) in `src/application/ingredient/`
-- [ ] T041 [P] [US2] Add Prisma repositories for meals and ingredients in `src/infrastructure/database/repositories/prisma-meal.repository.ts` and `prisma-ingredient.repository.ts`
-- [ ] T042 [P] [US2] Add DTOs and validators for meals/ingredients in `src/infrastructure/http/dtos/meal.dto.ts` and `ingredient.dto.ts`
-- [ ] T043 [US2] Implement meal controller endpoints (list/create/get/update/archive) in `src/infrastructure/http/controllers/meal.controller.ts`
-- [ ] T044 [US2] Implement ingredient controller endpoints in `src/infrastructure/http/controllers/ingredient.controller.ts`
-- [ ] T045 [US2] Add integration tests for meal and ingredient repositories in `tests/integration/repositories/meal.repository.spec.ts` and `ingredient.repository.spec.ts`
+- [X] T036 [P] [US2] Implement Meal entity and MealQualities value object in `src/domain/meal/`
+- [X] T037 [P] [US2] Implement Ingredient entity in `src/domain/ingredient/ingredient.entity.ts`
+- [X] T038 [P] [US2] Implement meal and ingredient repository interfaces in `src/domain/meal/meal.repository.ts` and `src/domain/ingredient/ingredient.repository.ts`
+- [X] T039 [P] [US2] Implement meal use cases (create, update, archive, list) in `src/application/meal/`
+- [X] T040 [P] [US2] Implement ingredient use cases (create, update, delete, list) in `src/application/ingredient/`
+- [X] T041 [P] [US2] Add Prisma repositories for meals and ingredients in `src/infrastructure/database/repositories/prisma-meal.repository.ts` and `prisma-ingredient.repository.ts`
+- [X] T042 [P] [US2] Add DTOs and validators for meals/ingredients in `src/infrastructure/http/dtos/meal.dto.ts` and `ingredient.dto.ts`
+- [X] T043 [US2] Implement meal controller endpoints (list/create/get/update/archive) in `src/infrastructure/http/controllers/meal.controller.ts`
+- [X] T044 [US2] Implement ingredient controller endpoints in `src/infrastructure/http/controllers/ingredient.controller.ts`
+- [X] T045 [US2] Add integration tests for meal and ingredient repositories in `tests/integration/repositories/meal.repository.spec.ts` and `ingredient.repository.spec.ts`
 
 ## Phase 5: User Story 4 - Configure Personal Meal Preferences (Priority: P2)
 
@@ -80,18 +80,18 @@
 **Independent Test**: Admin updates weekStartDay and daily quality flags; non-admin update attempts are forbidden; eligible meals reflect updated preferences.
 
 ### Tests (write first)
-- [ ] T046 [P] [US4] Write e2e tests for user-settings GET/PUT endpoints in `tests/e2e/user-settings.e2e.spec.ts`
-- [ ] T047 [P] [US4] Write unit tests for UserSettings validation (7-day coverage, flags) in `tests/unit/domain/user/user-settings.spec.ts`
+- [X] T046 [P] [US4] Write e2e tests for user-settings GET/PUT endpoints in `tests/e2e/user-settings.e2e.spec.ts`
+- [X] T047 [P] [US4] Write unit tests for UserSettings validation (7-day coverage, flags) in `tests/unit/domain/user/user-settings.spec.ts`
 
 ### Implementation
-- [ ] T048 [P] [US4] Implement UserSettings entity with validation in `src/domain/user/user-settings.entity.ts`
-- [ ] T049 [P] [US4] Ensure user repository interface supports tenant admin lookup in `src/domain/user/user.repository.ts`
-- [ ] T050 [P] [US4] Implement user-settings use cases (get, update with admin check) in `src/application/user-settings/`
-- [ ] T051 [P] [US4] Add Prisma repositories for user and user-settings in `src/infrastructure/database/repositories/prisma-user.repository.ts`
-- [ ] T052 [P] [US4] Add DTOs and validators for user-settings in `src/infrastructure/http/dtos/user-settings.dto.ts`
-- [ ] T053 [US4] Implement user-settings controller in `src/infrastructure/http/controllers/user-settings.controller.ts`
-- [ ] T054 [US4] Add admin guard logic to auth middleware in `src/infrastructure/http/middleware/auth.middleware.ts`
-- [ ] T055 [US4] Add integration tests for user-settings use cases in `tests/integration/usecases/user-settings.usecase.spec.ts`
+- [X] T048 [P] [US4] Implement UserSettings entity with validation in `src/domain/user/user-settings.entity.ts`
+- [X] T049 [P] [US4] Ensure user repository interface supports tenant admin lookup in `src/domain/user/user.repository.ts`
+- [X] T050 [P] [US4] Implement user-settings use cases (get, update with admin check) in `src/application/user-settings/`
+- [X] T051 [P] [US4] Add Prisma repositories for user and user-settings in `src/infrastructure/database/repositories/prisma-user.repository.ts`
+- [X] T052 [P] [US4] Add DTOs and validators for user-settings in `src/infrastructure/http/dtos/user-settings.dto.ts`
+- [X] T053 [US4] Implement user-settings controller in `src/infrastructure/http/controllers/user-settings.controller.ts`
+- [X] T054 [US4] Add admin guard logic to auth middleware in `src/infrastructure/http/middleware/auth.middleware.ts`
+- [X] T055 [US4] Add integration tests for user-settings use cases in `tests/integration/usecases/user-settings.usecase.spec.ts`
 
 ## Phase 6: User Story 3 - Discover Meal Options with Random Selection (Priority: P3)
 
@@ -100,20 +100,21 @@
 **Independent Test**: With multiple eligible meals, random responses vary over repeated calls; with zero eligible meals, response is empty/message.
 
 ### Tests (write first)
-- [ ] T056 [P] [US3] Write unit tests for random eligible meal selection in `tests/unit/application/meal/get-random-meal.usecase.spec.ts`
-- [ ] T057 [P] [US3] Write e2e tests for `/meals/random` endpoint in `tests/e2e/meal-random.e2e.spec.ts`
+- [X] T056 [P] [US3] Write unit tests for random eligible meal selection in `tests/unit/application/meal/get-random-meal.usecase.spec.ts`
+- [X] T057 [P] [US3] Write e2e tests for `/meals/random` endpoint in `tests/e2e/meal-random.e2e.spec.ts`
 
 ### Implementation
-- [ ] T058 [P] [US3] Implement random eligible meal use case using eligible-meal service in `src/application/meal/get-random-meal.usecase.ts`
-- [ ] T059 [US3] Add random endpoint handler to meal controller in `src/infrastructure/http/controllers/meal.controller.ts`
-- [ ] T060 [US3] Wire DI container for random meal use case in `src/infrastructure/di/container.ts`
+- [X] T058 [P] [US3] Implement random eligible meal use case using eligible-meal service in `src/application/meal/get-random-meal.usecase.ts`
+- [X] T059 [US3] Add random endpoint handler to meal controller in `src/infrastructure/http/controllers/meal.controller.ts`
+- [X] T060 [US3] Wire DI container for random meal use case in `src/infrastructure/di/container.ts`
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T061 [P] Validate OpenAPI alignment vs controllers and update `specs/001-001-meal-planning-api/contracts/openapi.yaml`
-- [ ] T063 [P] Add security hardening (input validation schemas, rate limiting hooks) in `src/infrastructure/http/middleware/validation.middleware.ts`
-- [ ] T064 [P] Update quickstart and README with final commands in `specs/001-001-meal-planning-api/quickstart.md` and `README.md`
-- [ ] T065 Run full CI suite (lint, type-check, tests, coverage) before release
+- [X] T061 [P] Validate OpenAPI alignment vs controllers and update `specs/001-001-meal-planning-api/contracts/openapi.yaml`
+- [X] T063 [P] Add security hardening (input validation schemas, rate limiting hooks) in `src/infrastructure/http/middleware/validation.middleware.ts`
+- [X] T064 [P] Update quickstart and README with final commands in `specs/001-001-meal-planning-api/quickstart.md` and `README.md`
+- [X] T065 Run full CI suite (lint, type-check, tests, coverage) before release
+
 
 ---
 

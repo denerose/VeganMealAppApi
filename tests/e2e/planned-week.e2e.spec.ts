@@ -12,9 +12,9 @@ describe('Planned Weeks API (contract)', () => {
     void API_BASE_URL;
   });
 
-  test.todo('retrieves a planned week with 7 day plans and meal assignments');
+  test.todo('retrieves a planned week with 7 day plans and meal assignments', () => {});
 
-  test.todo('assigns lunch and dinner meals via PATCH endpoint with leftovers recomputed');
+  test.todo('assigns lunch and dinner meals via PATCH endpoint with leftovers recomputed', () => {});
 
-  test.todo('deletes a planned week and returns 204 status');
+  test.todo('deletes a planned week and returns 204 status', () => {});
 });

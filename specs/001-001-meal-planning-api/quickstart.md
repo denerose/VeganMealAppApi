@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - **Bun** 1.2.3 or higher ([install](https://bun.sh))
-- **Docker** and **Docker Compose** (for PostgreSQL)
+- **Podman** and **Docker Compose** (for PostgreSQL)
 - **Git** for version control
 
 ## Initial Setup
