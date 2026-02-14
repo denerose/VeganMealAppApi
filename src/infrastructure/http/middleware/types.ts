@@ -1,6 +1,7 @@
 export type HttpContext = {
   request: Request;
   url: URL;
+  params?: Record<string, string>;
   tenantId?: string;
   userId?: string;
   roles?: string[];

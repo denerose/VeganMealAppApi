@@ -1,10 +1,10 @@
 import { describe, test, expect, beforeAll } from 'bun:test';
-import { GetEligibleMealsUseCase } from '@/application/meal/get-eligible-meals.usecase';
-import { GetEligibleMealsUserSettingsRepositoryAdapter } from '@/infrastructure/adapters/get-eligible-meals-user-settings.adapter';
+import { GetEligibleMealsUseCase } from '@/application/meal/get-eligible-meals.use-case';
 import { PrismaMealRepository } from '@/infrastructure/database/repositories/prisma-meal.repository';
 import { PrismaUserSettingsRepository } from '@/infrastructure/database/repositories/prisma-user-settings.repository';
 import { resetDatabase, getTestPrisma } from '../setup';
 import { seedDatabase } from '../../prisma/seed-utils';
+import { WeekStartDay } from '@/domain/shared/week-start-day.enum';
 import { SEED_TENANTS, SEED_USER_SETTINGS } from '../../prisma/seed-data';
 
 /**
@@ -181,7 +181,7 @@ describe('Database Seeding (E2E)', () => {
 
       for (const week of weeks) {
         const settings = SEED_USER_SETTINGS.find(s => s.tenantId === week.tenantId);
-        const expectedDay = settings?.weekStartDay ?? 'MONDAY';
+        const expectedDay = settings?.weekStartDay ?? WeekStartDay.MONDAY;
         const startDate = new Date(week.startingDate);
         const actualDay = dayNames[startDate.getDay()];
         expect(actualDay).toBe(expectedDay);
@@ -314,12 +314,9 @@ describe('Database Seeding (E2E)', () => {
   describe('Eligible meals endpoint with seeded data (US3)', () => {
     const mealRepository = new PrismaMealRepository(prisma);
     const userSettingsRepository = new PrismaUserSettingsRepository(prisma);
-    const eligibleSettingsAdapter = new GetEligibleMealsUserSettingsRepositoryAdapter(
-      userSettingsRepository
-    );
     const getEligibleMealsUseCase = new GetEligibleMealsUseCase(
       mealRepository,
-      eligibleSettingsAdapter
+      userSettingsRepository
     );
 
     test('GET eligible meals for Monday lunch returns only lunch-suitable meals', async () => {
@@ -387,7 +384,7 @@ describe('Database Seeding (E2E)', () => {
     test('US3: eligible meals endpoint returns data for seeded tenants', async () => {
       const useCase = new GetEligibleMealsUseCase(
         new PrismaMealRepository(prisma),
-        new GetEligibleMealsUserSettingsRepositoryAdapter(new PrismaUserSettingsRepository(prisma))
+        new PrismaUserSettingsRepository(prisma)
       );
       const meals = await useCase.execute({
         tenantId: SEED_TENANTS[0].id,

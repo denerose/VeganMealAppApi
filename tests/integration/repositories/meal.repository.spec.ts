@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeEach } from 'bun:test';
 import { PrismaMealRepository } from '@/infrastructure/database/repositories/prisma-meal.repository';
 import { Meal } from '@/domain/meal/meal.entity';
+import { StorageType } from '@/domain/shared/storage-type.enum';
 import { resetDatabase, getTestPrisma } from '../../setup';
 
 const prisma = getTestPrisma();
@@ -36,7 +37,7 @@ describe('PrismaMealRepository', () => {
       const ingredient = await prisma.ingredient.create({
         data: {
           ingredientName: 'Tomato',
-          storageType: 'FRIDGE',
+          storageType: StorageType.FRIDGE,
           staple: false,
           tenantId: TEST_TENANT_ID,
         },
@@ -82,7 +83,7 @@ describe('PrismaMealRepository', () => {
       const ingredient = await prisma.ingredient.create({
         data: {
           ingredientName: 'Pasta',
-          storageType: 'PANTRY',
+          storageType: StorageType.PANTRY,
           staple: true,
           tenantId: TEST_TENANT_ID,
         },
@@ -219,7 +220,7 @@ describe('PrismaMealRepository', () => {
       const ingredient1 = await prisma.ingredient.create({
         data: {
           ingredientName: 'Ingredient 1',
-          storageType: 'FRIDGE',
+          storageType: StorageType.FRIDGE,
           staple: false,
           tenantId: TEST_TENANT_ID,
         },
@@ -228,7 +229,7 @@ describe('PrismaMealRepository', () => {
       const ingredient2 = await prisma.ingredient.create({
         data: {
           ingredientName: 'Ingredient 2',
-          storageType: 'PANTRY',
+          storageType: StorageType.PANTRY,
           staple: false,
           tenantId: TEST_TENANT_ID,
         },

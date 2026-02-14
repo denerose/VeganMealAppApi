@@ -1,6 +1,6 @@
-import type { IngredientId, IngredientSnapshot } from '../../domain/ingredient/ingredient.entity';
-import type { IngredientRepository } from '../../domain/ingredient/ingredient.repository';
-import type { StorageType } from '../../domain/shared/storage-type.enum';
+import type { IngredientId, IngredientSnapshot } from '@/domain/ingredient/ingredient.entity';
+import type { IngredientRepository } from '@/domain/ingredient/ingredient.repository';
+import type { StorageType } from '@/domain/shared/storage-type.enum';
 
 export type UpdateIngredientRequest = {
   id: IngredientId;
@@ -11,7 +11,7 @@ export type UpdateIngredientRequest = {
 };
 
 export class UpdateIngredientUseCase {
-  constructor(private ingredientRepository: IngredientRepository) {}
+  constructor(private readonly ingredientRepository: IngredientRepository) {}
 
   async execute(request: UpdateIngredientRequest): Promise<IngredientSnapshot> {
     const ingredient = await this.ingredientRepository.findById(request.id, request.tenantId);

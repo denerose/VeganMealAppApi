@@ -1,3 +1,4 @@
+import type { PaginationOptions, PaginatedResult } from '@/domain/shared/pagination.types';
 import type { Ingredient, IngredientId } from './ingredient.entity';
 import type { StorageType } from '../shared/storage-type.enum';
 
@@ -7,17 +8,7 @@ export type IngredientFilters = {
   isStaple?: boolean;
 };
 
-export type PaginationOptions = {
-  limit: number;
-  offset: number;
-};
-
-export type PaginatedResult<T> = {
-  items: T[];
-  total: number;
-  limit: number;
-  offset: number;
-};
+export type { PaginationOptions, PaginatedResult };
 
 export interface IngredientRepository {
   create(ingredient: Ingredient, tenantId: string): Promise<Ingredient>;

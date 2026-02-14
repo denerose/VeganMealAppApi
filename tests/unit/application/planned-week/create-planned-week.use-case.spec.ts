@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
 
-import { AssignMealToDayUseCase } from '@/application/planned-week/assign-meal-to-day.usecase';
-import { CreatePlannedWeekUseCase } from '@/application/planned-week/create-planned-week.usecase';
-import { DeletePlannedWeekUseCase } from '@/application/planned-week/delete-planned-week.usecase';
-import { GetPlannedWeekUseCase } from '@/application/planned-week/get-planned-week.usecase';
-import { PopulateLeftoversUseCase } from '@/application/planned-week/populate-leftovers.usecase';
+import { AssignMealToDayUseCase } from '@/application/planned-week/assign-meal-to-day.use-case';
+import { CreatePlannedWeekUseCase } from '@/application/planned-week/create-planned-week.use-case';
+import { DeletePlannedWeekUseCase } from '@/application/planned-week/delete-planned-week.use-case';
+import { GetPlannedWeekUseCase } from '@/application/planned-week/get-planned-week.use-case';
+import { PopulateLeftoversUseCase } from '@/application/planned-week/populate-leftovers.use-case';
 import { PlannedWeek, PlannedWeekProps } from '@/domain/planned-week/planned-week.entity';
 import { PlannedWeekRepository } from '@/domain/planned-week/planned-week.repository';
 import { WeekStartDay } from '@/domain/shared/week-start-day.enum';

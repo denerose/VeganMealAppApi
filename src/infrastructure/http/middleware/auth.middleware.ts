@@ -19,7 +19,7 @@ const extractTokenFromHeader = (request: Request): string | null => {
 
 /**
  * Authentication middleware that validates JWT tokens and extracts user information.
- * T046-T047: Validates JWT tokens using JWTValidator and extracts userId and tenantId.
+ * Validates JWT tokens using JWTValidator and extracts userId and tenantId.
  */
 export const authMiddleware: HttpMiddleware = (context: HttpContext): Promise<HttpContext> => {
   const token = extractTokenFromHeader(context.request);
@@ -34,10 +34,8 @@ export const authMiddleware: HttpMiddleware = (context: HttpContext): Promise<Ht
   }
 
   try {
-    // T046: Validate JWT token using JWTValidator
     const validatedToken = jwtValidator.validate(token);
 
-    // T047: Extract userId and tenantId from JWT token and add to HttpContext
     return Promise.resolve({
       ...context,
       userId: validatedToken.userId,

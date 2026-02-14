@@ -1,18 +1,15 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test';
 import type { UserRepository } from '@/domain/user/user.repository';
-import type { PrismaClient } from '@prisma/client';
 import { UpdateUserProfileUseCase } from '@/application/auth/update-user-profile.use-case';
 
 describe('UpdateUserProfileUseCase', () => {
   let useCase: UpdateUserProfileUseCase;
   let mockUserRepository: UserRepository;
-  let mockPrisma: PrismaClient;
   let mockFindById: ReturnType<typeof mock>;
-  let mockUserUpdate: ReturnType<typeof mock>;
-  let mockTenantFindUnique: ReturnType<typeof mock>;
+  let mockUpdateNickname: ReturnType<typeof mock>;
+  let mockFindTenantById: ReturnType<typeof mock>;
 
   beforeEach(() => {
-    // Create mock functions
     mockFindById = mock(() =>
       Promise.resolve({
         id: 'user-123',
@@ -25,7 +22,7 @@ describe('UpdateUserProfileUseCase', () => {
       })
     );
 
-    mockUserUpdate = mock(() =>
+    mockUpdateNickname = mock(() =>
       Promise.resolve({
         id: 'user-123',
         email: 'vegan-chef@example.com',
@@ -37,18 +34,12 @@ describe('UpdateUserProfileUseCase', () => {
       })
     );
 
-    mockTenantFindUnique = mock(() =>
-      Promise.resolve({
-        id: 'tenant-123',
-        name: 'Smith Family',
-        createdAt: new Date('2026-01-01'),
-        updatedAt: new Date('2026-01-01'),
-      })
-    );
+    mockFindTenantById = mock(() => Promise.resolve({ id: 'tenant-123', name: 'Smith Family' }));
 
-    // Mock UserRepository
     mockUserRepository = {
       findById: mockFindById,
+      findTenantById: mockFindTenantById,
+      updateNickname: mockUpdateNickname,
       findByEmail: mock(() => Promise.resolve(null)),
       findAdminsByTenant: mock(() => Promise.resolve([])),
       isUserAdmin: mock(() => Promise.resolve(true)),
@@ -56,17 +47,7 @@ describe('UpdateUserProfileUseCase', () => {
       updatePasswordHash: mock(() => Promise.resolve()),
     } as unknown as UserRepository;
 
-    // Mock PrismaClient
-    mockPrisma = {
-      user: {
-        update: mockUserUpdate,
-      },
-      tenant: {
-        findUnique: mockTenantFindUnique,
-      },
-    } as unknown as PrismaClient;
-
-    useCase = new UpdateUserProfileUseCase(mockPrisma, mockUserRepository);
+    useCase = new UpdateUserProfileUseCase(mockUserRepository);
   });
 
   it('should update user nickname successfully', async () => {
@@ -88,15 +69,12 @@ describe('UpdateUserProfileUseCase', () => {
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(mockFindById).toHaveBeenCalledWith('user-123', 'tenant-123');
 
-    // Verify user update was called
-    expect(mockUserUpdate).toHaveBeenCalledTimes(1);
-    expect(mockUserUpdate).toHaveBeenCalledWith({
-      where: { id: 'user-123' },
-      data: { nickname: 'Updated Nickname' },
-    });
+    // Verify repository updateNickname was called
+    expect(mockUpdateNickname).toHaveBeenCalledTimes(1);
+    expect(mockUpdateNickname).toHaveBeenCalledWith('user-123', 'tenant-123', 'Updated Nickname');
 
     // Verify tenant lookup was called
-    expect(mockTenantFindUnique).toHaveBeenCalledTimes(1);
+    expect(mockFindTenantById).toHaveBeenCalledTimes(1);
   });
 
   it('should throw error if user not found', () => {
@@ -111,11 +89,11 @@ describe('UpdateUserProfileUseCase', () => {
     ).rejects.toThrow('User not found');
 
     expect(mockFindById).toHaveBeenCalledTimes(1);
-    expect(mockUserUpdate).not.toHaveBeenCalled();
+    expect(mockUpdateNickname).not.toHaveBeenCalled();
   });
 
   it('should throw error if tenant not found', () => {
-    mockTenantFindUnique.mockResolvedValueOnce(null);
+    mockFindTenantById.mockResolvedValueOnce(null);
 
     return expect(
       useCase.execute({
@@ -126,7 +104,7 @@ describe('UpdateUserProfileUseCase', () => {
     ).rejects.toThrow('Tenant not found');
 
     expect(mockFindById).toHaveBeenCalledTimes(1);
-    expect(mockUserUpdate).not.toHaveBeenCalled();
+    expect(mockUpdateNickname).not.toHaveBeenCalled();
   });
 
   it('should throw error for invalid nickname (empty)', () => {
@@ -139,7 +117,7 @@ describe('UpdateUserProfileUseCase', () => {
     ).rejects.toThrow('Nickname is required');
 
     expect(mockFindById).toHaveBeenCalledTimes(1);
-    expect(mockUserUpdate).not.toHaveBeenCalled();
+    expect(mockUpdateNickname).not.toHaveBeenCalled();
   });
 
   it('should throw error for invalid nickname (too long)', () => {
@@ -154,7 +132,7 @@ describe('UpdateUserProfileUseCase', () => {
     ).rejects.toThrow('Nickname must be 50 characters or less');
 
     expect(mockFindById).toHaveBeenCalledTimes(1);
-    expect(mockUserUpdate).not.toHaveBeenCalled();
+    expect(mockUpdateNickname).not.toHaveBeenCalled();
   });
 
   it('should prevent email changes (T087: email immutability)', () => {
@@ -168,7 +146,7 @@ describe('UpdateUserProfileUseCase', () => {
     ).rejects.toThrow('Email cannot be changed');
 
     expect(mockFindById).toHaveBeenCalledTimes(1);
-    expect(mockUserUpdate).not.toHaveBeenCalled();
+    expect(mockUpdateNickname).not.toHaveBeenCalled();
   });
 
   it('should allow nickname update without email field', async () => {
@@ -181,10 +159,7 @@ describe('UpdateUserProfileUseCase', () => {
 
     expect(result.nickname).toBe('Updated Nickname');
     expect(result.email).toBe('vegan-chef@example.com'); // Original email preserved
-    expect(mockUserUpdate).toHaveBeenCalledTimes(1);
-    expect(mockUserUpdate).toHaveBeenCalledWith({
-      where: { id: 'user-123' },
-      data: { nickname: 'Updated Nickname' },
-    });
+    expect(mockUpdateNickname).toHaveBeenCalledTimes(1);
+    expect(mockUpdateNickname).toHaveBeenCalledWith('user-123', 'tenant-123', 'Updated Nickname');
   });
 });

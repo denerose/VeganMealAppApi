@@ -1,14 +1,16 @@
-import type { PlannedWeek } from '@/domain/planned-week/planned-week.entity';
-import type { CreatePlannedWeekUseCase } from '@/application/planned-week/create-planned-week.usecase';
-import type { GetPlannedWeekUseCase } from '@/application/planned-week/get-planned-week.usecase';
-import type { DeletePlannedWeekUseCase } from '@/application/planned-week/delete-planned-week.usecase';
-import type { PopulateLeftoversUseCase } from '@/application/planned-week/populate-leftovers.usecase';
-import type { ListPlannedWeeksUseCase } from '@/application/planned-week/list-planned-weeks.usecase';
+import { WeekStartDay } from '@/domain/shared/week-start-day.enum';
+import { PlannedWeek } from '@/domain/planned-week/planned-week.entity';
+import type { CreatePlannedWeekUseCase } from '@/application/planned-week/create-planned-week.use-case';
+import type { GetPlannedWeekUseCase } from '@/application/planned-week/get-planned-week.use-case';
+import type { DeletePlannedWeekUseCase } from '@/application/planned-week/delete-planned-week.use-case';
+import type { PopulateLeftoversUseCase } from '@/application/planned-week/populate-leftovers.use-case';
+import type { ListPlannedWeeksUseCase } from '@/application/planned-week/list-planned-weeks.use-case';
 import {
   type PlannedWeekResponseDto,
   validateCreatePlannedWeekRequest,
 } from '@/infrastructure/http/dtos/planned-week.dto';
-import { createErrorBody } from '@/infrastructure/http/dtos/common.dto';
+import { createErrorBody, errorMessage } from '@/infrastructure/http/dtos/common.dto';
+import { jsonResponse } from '@/infrastructure/http/response.utils';
 import type { RouteContext } from '@/infrastructure/http/routes';
 
 export class PlannedWeekController {
@@ -26,18 +28,12 @@ export class PlannedWeekController {
       const validation = validateCreatePlannedWeekRequest(body);
 
       if (!validation.valid) {
-        return new Response(
-          JSON.stringify(createErrorBody('Validation failed', validation.errors)),
-          {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
+        return jsonResponse(createErrorBody('Validation failed', validation.errors), 400);
       }
 
       // TODO: Extract tenantId and weekStartDay from auth context
       const tenantId = context.request.headers.get('x-tenant-id') || 'temp-tenant-id';
-      const weekStartDay = 'MONDAY' as const; // TODO: Fetch from UserSettings
+      const weekStartDay = WeekStartDay.MONDAY; // TODO: Fetch from UserSettings
 
       const plannedWeek = await this.createPlannedWeekUseCase.execute({
         tenantId,
@@ -57,32 +53,23 @@ export class PlannedWeekController {
 
       const response = this.toResponseDto(refreshedWeek);
 
-      return new Response(JSON.stringify({ data: response }), {
-        status: 201,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse({ data: response }, 201);
     } catch (error) {
-      if (error instanceof Error && error.message.includes('already exists')) {
-        return new Response(
-          JSON.stringify(createErrorBody('Planned week already exists for this start date')),
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
+      const msg = errorMessage(error);
+      if (msg.includes('already exists')) {
+        return jsonResponse(
+          createErrorBody('Planned week already exists for this start date'),
+          400
         );
       }
-
-      if (error instanceof Error && error.message.includes('must align')) {
-        return new Response(
-          JSON.stringify(
-            createErrorBody('Starting date must align with configured week start day')
-          ),
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
+      if (msg.includes('must align')) {
+        return jsonResponse(
+          createErrorBody('Starting date must align with configured week start day'),
+          400
         );
       }
-
       console.error('Error creating planned week:', error);
-      return new Response(JSON.stringify(createErrorBody('Internal server error')), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(createErrorBody('Internal server error'), 500);
     }
   }
 
@@ -115,30 +102,21 @@ export class PlannedWeekController {
         pagination,
       });
 
-      return new Response(
-        JSON.stringify({
-          data: result.items.map(snapshot => {
-            const plannedWeek = PlannedWeek.rehydrate(snapshot);
-            return this.toResponseDto(plannedWeek);
-          }),
-          pagination: {
-            offset: result.offset,
-            limit: result.limit,
-            total: result.total,
-            hasMore: result.offset + result.items.length < result.total,
-          },
+      return jsonResponse({
+        data: result.items.map(snapshot => {
+          const plannedWeek = PlannedWeek.rehydrate(snapshot);
+          return this.toResponseDto(plannedWeek);
         }),
-        {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
+        pagination: {
+          offset: result.offset,
+          limit: result.limit,
+          total: result.total,
+          hasMore: result.offset + result.items.length < result.total,
+        },
+      });
     } catch (error) {
       console.error('Error listing planned weeks:', error);
-      return new Response(JSON.stringify(createErrorBody('Internal server error')), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(createErrorBody('Internal server error'), 500);
     }
   }
 
@@ -146,10 +124,7 @@ export class PlannedWeekController {
     try {
       const weekId = context.params.weekId;
       if (!weekId) {
-        return new Response(JSON.stringify(createErrorBody('Week ID is required')), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse(createErrorBody('Week ID is required'), 400);
       }
 
       // TODO: Extract tenantId from auth context
@@ -162,23 +137,13 @@ export class PlannedWeekController {
 
       const response = this.toResponseDto(plannedWeek);
 
-      return new Response(JSON.stringify({ data: response }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse({ data: response });
     } catch (error) {
-      if (error instanceof Error && error.message.includes('not found')) {
-        return new Response(JSON.stringify(createErrorBody('Planned week not found')), {
-          status: 404,
-          headers: { 'Content-Type': 'application/json' },
-        });
+      if (errorMessage(error).includes('not found')) {
+        return jsonResponse(createErrorBody('Planned week not found'), 404);
       }
-
       console.error('Error fetching planned week:', error);
-      return new Response(JSON.stringify(createErrorBody('Internal server error')), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(createErrorBody('Internal server error'), 500);
     }
   }
 
@@ -186,10 +151,7 @@ export class PlannedWeekController {
     try {
       const weekId = context.params.weekId;
       if (!weekId) {
-        return new Response(JSON.stringify(createErrorBody('Week ID is required')), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse(createErrorBody('Week ID is required'), 400);
       }
 
       // TODO: Extract tenantId from auth context
@@ -202,18 +164,11 @@ export class PlannedWeekController {
 
       return new Response(null, { status: 204 });
     } catch (error) {
-      if (error instanceof Error && error.message.includes('not found')) {
-        return new Response(JSON.stringify(createErrorBody('Planned week not found')), {
-          status: 404,
-          headers: { 'Content-Type': 'application/json' },
-        });
+      if (errorMessage(error).includes('not found')) {
+        return jsonResponse(createErrorBody('Planned week not found'), 404);
       }
-
       console.error('Error deleting planned week:', error);
-      return new Response(JSON.stringify(createErrorBody('Internal server error')), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(createErrorBody('Internal server error'), 500);
     }
   }
 

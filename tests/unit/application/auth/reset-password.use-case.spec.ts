@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test';
 import { ResetPasswordUseCase } from '@/application/auth/reset-password.use-case';
 import type { AuthRepository } from '@/domain/auth/auth.repository';
+import type { PasswordHasher } from '@/domain/auth/password-hasher.interface';
 import type { UserRepository } from '@/domain/user/user.repository';
-import { BcryptPasswordHasher } from '@/infrastructure/auth/password/bcrypt-password-hasher';
 
 describe('ResetPasswordUseCase', () => {
   let useCase: ResetPasswordUseCase;
   let mockAuthRepository: AuthRepository;
   let mockUserRepository: UserRepository;
-  let mockPasswordHasher: BcryptPasswordHasher;
+  let mockPasswordHasher: PasswordHasher;
   let mockFindPasswordResetTokenByToken: ReturnType<typeof mock>;
   let mockMarkPasswordResetTokenAsUsed: ReturnType<typeof mock>;
   let mockUpdatePasswordHash: ReturnType<typeof mock>;
@@ -44,7 +44,7 @@ describe('ResetPasswordUseCase', () => {
     // Mock BcryptPasswordHasher
     mockPasswordHasher = {
       hash: mockHash,
-    } as unknown as BcryptPasswordHasher;
+    } as unknown as PasswordHasher;
 
     useCase = new ResetPasswordUseCase(mockAuthRepository, mockUserRepository, mockPasswordHasher);
   });

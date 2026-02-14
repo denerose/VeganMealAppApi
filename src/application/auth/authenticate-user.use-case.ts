@@ -1,7 +1,6 @@
+import type { PasswordHasher } from '@/domain/auth/password-hasher.interface';
+import type { TokenGenerator } from '@/domain/auth/token-generator.interface';
 import type { UserRepository } from '@/domain/user/user.repository';
-import { BcryptPasswordHasher } from '@/infrastructure/auth/password/bcrypt-password-hasher';
-import { JWTGenerator } from '@/infrastructure/auth/jwt/jwt-generator';
-import type { PrismaClient } from '@prisma/client';
 
 export type AuthenticateUserRequest = {
   email: string;
@@ -28,49 +27,34 @@ export type AuthenticateUserResponse = {
  */
 export class AuthenticateUserUseCase {
   constructor(
-    private prisma: PrismaClient,
-    private userRepository: UserRepository,
-    private passwordHasher: BcryptPasswordHasher,
-    private jwtGenerator: JWTGenerator
+    private readonly userRepository: UserRepository,
+    private readonly passwordHasher: PasswordHasher,
+    private readonly tokenGenerator: TokenGenerator
   ) {}
 
-  /**
-   * Authenticates a user with email and password.
-   * @param request - Authentication request containing email and password
-   * @returns Authentication response with JWT token and user information
-   * @throws Error with generic message if authentication fails (don't reveal if email exists)
-   */
   async execute(request: AuthenticateUserRequest): Promise<AuthenticateUserResponse> {
-    // Find user by email with password hash
     const userWithPassword = await this.userRepository.findByEmailWithPassword(request.email);
 
-    // Generic error message to prevent user enumeration (don't reveal if email exists)
     if (!userWithPassword || !userWithPassword.passwordHash) {
       throw new Error('Invalid credentials');
     }
 
-    // T043: Verify password using BcryptPasswordHasher.compare()
     const isValidPassword = await this.passwordHasher.compare(
       request.password,
       userWithPassword.passwordHash
     );
 
-    // T044: Generic error message (don't reveal if email exists per FR-014)
     if (!isValidPassword) {
       throw new Error('Invalid credentials');
     }
 
-    // Get tenant information
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: userWithPassword.user.tenantId },
-    });
+    const tenant = await this.userRepository.findTenantById(userWithPassword.user.tenantId);
 
     if (!tenant) {
       throw new Error('Invalid credentials');
     }
 
-    // T045: Generate JWT token using JWTGenerator (24h expiration)
-    const token = await this.jwtGenerator.generate({
+    const token = await this.tokenGenerator.generate({
       userId: userWithPassword.user.id,
       tenantId: userWithPassword.user.tenantId,
       email: userWithPassword.user.email,

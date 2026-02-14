@@ -1,6 +1,6 @@
-import { Ingredient, type IngredientSnapshot } from '../../domain/ingredient/ingredient.entity';
-import type { IngredientRepository } from '../../domain/ingredient/ingredient.repository';
-import type { StorageType } from '../../domain/shared/storage-type.enum';
+import { Ingredient, type IngredientSnapshot } from '@/domain/ingredient/ingredient.entity';
+import type { IngredientRepository } from '@/domain/ingredient/ingredient.repository';
+import type { StorageType } from '@/domain/shared/storage-type.enum';
 
 export type CreateIngredientRequest = {
   name: string;
@@ -10,7 +10,7 @@ export type CreateIngredientRequest = {
 };
 
 export class CreateIngredientUseCase {
-  constructor(private ingredientRepository: IngredientRepository) {}
+  constructor(private readonly ingredientRepository: IngredientRepository) {}
 
   async execute(request: CreateIngredientRequest): Promise<IngredientSnapshot> {
     const ingredient = Ingredient.create(request.name, request.storageType, request.isStaple);

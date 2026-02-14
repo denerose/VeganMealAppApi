@@ -1,9 +1,10 @@
+import type { PasswordHasher } from '@/domain/auth/password-hasher.interface';
 import type { UserRepository } from '@/domain/user/user.repository';
-import { BcryptPasswordHasher } from '@/infrastructure/auth/password/bcrypt-password-hasher';
 import { PasswordValidator } from '@/infrastructure/auth/password/password-validator';
 
 export type ChangePasswordRequest = {
   userId: string;
+  tenantId: string;
   currentPassword: string;
   newPassword: string;
 };
@@ -18,8 +19,8 @@ export type ChangePasswordResponse = {
  */
 export class ChangePasswordUseCase {
   constructor(
-    private userRepository: UserRepository,
-    private passwordHasher: BcryptPasswordHasher
+    private readonly userRepository: UserRepository,
+    private readonly passwordHasher: PasswordHasher
   ) {}
 
   /**
@@ -36,7 +37,7 @@ export class ChangePasswordUseCase {
     }
 
     // Get user with password hash
-    const user = await this.userRepository.findById(request.userId);
+    const user = await this.userRepository.findById(request.userId, request.tenantId);
     if (!user) {
       throw new Error('User not found');
     }

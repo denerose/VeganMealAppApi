@@ -1,4 +1,5 @@
-import { MealAssignment, MealSlot, PlannedWeek } from '@/domain/planned-week/planned-week.entity';
+import { MealAssignment, PlannedWeek } from '@/domain/planned-week/planned-week.entity';
+import { MealSlot } from '@/domain/shared/meal-slot.enum';
 import { PlannedWeekRepository } from '@/domain/planned-week/planned-week.repository';
 
 export type AssignMealToDayRequest = {
@@ -21,7 +22,7 @@ export class AssignMealToDayUseCase {
       plannedWeek.removeMeal(request.date, request.slot);
     }
 
-    if (request.slot === 'dinner') {
+    if (request.slot === MealSlot.DINNER) {
       plannedWeek.populateLeftovers();
     }
 

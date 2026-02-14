@@ -10,8 +10,8 @@ export type UpdateUserSettingsParams = {
 
 export class UpdateUserSettingsUseCase {
   constructor(
-    private userSettingsRepository: UserSettingsRepository,
-    private userRepository: UserRepository
+    private readonly userSettingsRepository: UserSettingsRepository,
+    private readonly userRepository: UserRepository
   ) {}
 
   async execute(

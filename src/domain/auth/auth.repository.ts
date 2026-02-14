@@ -1,10 +1,20 @@
+import type { User, Tenant } from '@/domain/user/user.repository';
 import type { PasswordResetToken } from './password-reset-token.entity';
+
+export type CreateTenantAndUserParams = {
+  tenantName: string;
+  email: string;
+  nickname: string;
+  passwordHash: string;
+};
 
 /**
  * Repository interface for authentication-related data operations.
  * Abstracts database access for authentication domain.
  */
 export interface AuthRepository {
+  createTenantAndUser(params: CreateTenantAndUserParams): Promise<{ tenant: Tenant; user: User }>;
+
   /**
    * Creates a password reset token for a user.
    * @param userId - User ID to create token for

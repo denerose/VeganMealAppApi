@@ -1,17 +1,14 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test';
 import type { UserRepository } from '@/domain/user/user.repository';
-import type { PrismaClient } from '@prisma/client';
 import { GetUserProfileUseCase } from '@/application/auth/get-user-profile.use-case';
 
 describe('GetUserProfileUseCase', () => {
   let useCase: GetUserProfileUseCase;
   let mockUserRepository: UserRepository;
-  let mockPrisma: PrismaClient;
   let mockFindById: ReturnType<typeof mock>;
-  let mockTenantFindUnique: ReturnType<typeof mock>;
+  let mockFindTenantById: ReturnType<typeof mock>;
 
   beforeEach(() => {
-    // Create mock functions
     mockFindById = mock(() =>
       Promise.resolve({
         id: 'user-123',
@@ -24,33 +21,22 @@ describe('GetUserProfileUseCase', () => {
       })
     );
 
-    mockTenantFindUnique = mock(() =>
-      Promise.resolve({
-        id: 'tenant-123',
-        name: 'Smith Family',
-        createdAt: new Date('2026-01-01'),
-        updatedAt: new Date('2026-01-01'),
-      })
-    );
+    mockFindTenantById = mock(() => Promise.resolve({ id: 'tenant-123', name: 'Smith Family' }));
 
-    // Mock UserRepository
     mockUserRepository = {
       findById: mockFindById,
+      findTenantById: mockFindTenantById,
       findByEmail: mock(() => Promise.resolve(null)),
       findAdminsByTenant: mock(() => Promise.resolve([])),
       isUserAdmin: mock(() => Promise.resolve(true)),
       findByEmailWithPassword: mock(() => Promise.resolve(null)),
       updatePasswordHash: mock(() => Promise.resolve()),
+      updateNickname: mock(() =>
+        Promise.resolve({} as import('@/domain/user/user.repository').User)
+      ),
     } as unknown as UserRepository;
 
-    // Mock PrismaClient
-    mockPrisma = {
-      tenant: {
-        findUnique: mockTenantFindUnique,
-      },
-    } as unknown as PrismaClient;
-
-    useCase = new GetUserProfileUseCase(mockPrisma, mockUserRepository);
+    useCase = new GetUserProfileUseCase(mockUserRepository);
   });
 
   it('should retrieve user profile successfully', async () => {
@@ -74,10 +60,8 @@ describe('GetUserProfileUseCase', () => {
     expect(mockFindById).toHaveBeenCalledWith('user-123', 'tenant-123');
 
     // Verify tenant lookup was called
-    expect(mockTenantFindUnique).toHaveBeenCalledTimes(1);
-    expect(mockTenantFindUnique).toHaveBeenCalledWith({
-      where: { id: 'tenant-123' },
-    });
+    expect(mockFindTenantById).toHaveBeenCalledTimes(1);
+    expect(mockFindTenantById).toHaveBeenCalledWith('tenant-123');
   });
 
   it('should throw error if user not found', () => {
@@ -91,11 +75,11 @@ describe('GetUserProfileUseCase', () => {
     ).rejects.toThrow('User not found');
 
     expect(mockFindById).toHaveBeenCalledTimes(1);
-    expect(mockTenantFindUnique).not.toHaveBeenCalled();
+    expect(mockFindTenantById).not.toHaveBeenCalled();
   });
 
   it('should throw error if tenant not found', () => {
-    mockTenantFindUnique.mockResolvedValueOnce(null);
+    mockFindTenantById.mockResolvedValueOnce(null);
 
     return expect(
       useCase.execute({
@@ -105,7 +89,7 @@ describe('GetUserProfileUseCase', () => {
     ).rejects.toThrow('Tenant not found');
 
     expect(mockFindById).toHaveBeenCalledTimes(1);
-    expect(mockTenantFindUnique).toHaveBeenCalledTimes(1);
+    expect(mockFindTenantById).toHaveBeenCalledTimes(1);
   });
 
   it('should throw error if user does not belong to tenant', () => {

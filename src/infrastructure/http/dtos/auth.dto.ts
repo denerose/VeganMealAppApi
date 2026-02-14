@@ -59,7 +59,6 @@ export const toAuthResponse = (
   },
 });
 
-// T093: Profile DTOs
 export type UserProfile = {
   id: string;
   email: string;
@@ -73,7 +72,7 @@ export type UserProfile = {
 
 export type UpdateProfileRequest = {
   nickname: string;
-  email?: string; // Optional, but if provided, should be rejected (T087: email immutability)
+  email?: string; // Optional; if provided, should be rejected (email is immutable)
 };
 
 export const toUserProfile = (

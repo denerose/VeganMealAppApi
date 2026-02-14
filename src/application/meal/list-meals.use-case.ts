@@ -1,10 +1,10 @@
-import type { MealSnapshot } from '../../domain/meal/meal.entity';
+import type { MealSnapshot } from '@/domain/meal/meal.entity';
 import type {
   MealRepository,
   MealFilters,
   PaginationOptions,
   PaginatedResult,
-} from '../../domain/meal/meal.repository';
+} from '@/domain/meal/meal.repository';
 
 export type ListMealsRequest = {
   tenantId: string;
@@ -13,7 +13,7 @@ export type ListMealsRequest = {
 };
 
 export class ListMealsUseCase {
-  constructor(private mealRepository: MealRepository) {}
+  constructor(private readonly mealRepository: MealRepository) {}
 
   async execute(request: ListMealsRequest): Promise<PaginatedResult<MealSnapshot>> {
     const result = await this.mealRepository.findAll(

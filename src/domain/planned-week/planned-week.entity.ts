@@ -1,10 +1,11 @@
 import { addDays, format, getDay, isValid, parseISO } from 'date-fns';
 
-import { DayOfWeek } from '@/domain/shared/day-of-week.enum';
-import { ShortDay } from '@/domain/shared/short-day.enum';
-import { WeekStartDay } from '@/domain/shared/week-start-day.enum';
+import { DayOfWeek, DAY_INDEX_TO_DAY_OF_WEEK } from '@/domain/shared/day-of-week.enum';
+import { MealSlot } from '@/domain/shared/meal-slot.enum';
+import { ShortDay, DAY_INDEX_TO_SHORT_DAY } from '@/domain/shared/short-day.enum';
+import { WeekStartDay, WEEK_START_DAY_INDEX } from '@/domain/shared/week-start-day.enum';
 
-export type MealSlot = 'lunch' | 'dinner';
+export type { MealSlot };
 
 export type MealAssignment = {
   mealId: string;
@@ -32,32 +33,6 @@ export type PlannedWeekSnapshot = PlannedWeekProps & {
   dayPlans: DayPlanState[];
   dinnerAssignments?: Record<string, MealAssignment>;
 };
-
-const WEEK_START_DAY_INDEX: Record<WeekStartDay, number> = {
-  [WeekStartDay.SUNDAY]: 0,
-  [WeekStartDay.MONDAY]: 1,
-  [WeekStartDay.SATURDAY]: 6,
-};
-
-const LONG_DAY_LOOKUP: DayOfWeek[] = [
-  DayOfWeek.SUNDAY,
-  DayOfWeek.MONDAY,
-  DayOfWeek.TUESDAY,
-  DayOfWeek.WEDNESDAY,
-  DayOfWeek.THURSDAY,
-  DayOfWeek.FRIDAY,
-  DayOfWeek.SATURDAY,
-];
-
-const SHORT_DAY_LOOKUP: ShortDay[] = [
-  ShortDay.SUN,
-  ShortDay.MON,
-  ShortDay.TUE,
-  ShortDay.WED,
-  ShortDay.THU,
-  ShortDay.FRI,
-  ShortDay.SAT,
-];
 
 export class PlannedWeek {
   readonly dayPlans: DayPlanState[] = [];
@@ -93,7 +68,7 @@ export class PlannedWeek {
   assignMeal(date: string, slot: MealSlot, assignment: MealAssignment): void {
     const dayPlan = this.getDayPlan(date);
 
-    if (slot === 'lunch') {
+    if (slot === MealSlot.LUNCH) {
       dayPlan.lunchMealId = assignment.mealId;
       dayPlan.isLeftover = false;
       return;
@@ -109,7 +84,7 @@ export class PlannedWeek {
   removeMeal(date: string, slot: MealSlot): void {
     const dayPlan = this.getDayPlan(date);
 
-    if (slot === 'lunch') {
+    if (slot === MealSlot.LUNCH) {
       dayPlan.lunchMealId = null;
       dayPlan.isLeftover = false;
       return;
@@ -186,8 +161,8 @@ export class PlannedWeek {
 
       return {
         date: format(date, 'yyyy-MM-dd'),
-        longDay: LONG_DAY_LOOKUP[weekdayIndex],
-        shortDay: SHORT_DAY_LOOKUP[weekdayIndex],
+        longDay: DAY_INDEX_TO_DAY_OF_WEEK[weekdayIndex],
+        shortDay: DAY_INDEX_TO_SHORT_DAY[weekdayIndex],
         lunchMealId: null,
         dinnerMealId: null,
         isLeftover: false,

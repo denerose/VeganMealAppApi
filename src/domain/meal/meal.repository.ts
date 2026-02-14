@@ -1,3 +1,4 @@
+import type { PaginationOptions, PaginatedResult } from '@/domain/shared/pagination.types';
 import type { Meal, MealId } from './meal.entity';
 import type { MealQualitiesProps } from './meal-qualities.vo';
 
@@ -14,17 +15,7 @@ export type MealFilters = {
   includeArchived?: boolean;
 };
 
-export type PaginationOptions = {
-  limit: number;
-  offset: number;
-};
-
-export type PaginatedResult<T> = {
-  items: T[];
-  total: number;
-  limit: number;
-  offset: number;
-};
+export type { PaginationOptions, PaginatedResult };
 
 export type MealQualitiesFilter = Partial<MealQualitiesProps> & {
   isArchived?: boolean;

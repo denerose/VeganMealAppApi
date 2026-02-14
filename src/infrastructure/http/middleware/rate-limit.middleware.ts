@@ -28,7 +28,7 @@ const extractIpAddress = (request: Request): string => {
 
 /**
  * Rate limiting middleware using RateLimiterService.
- * T048: Enforces rate limits (3 attempts per 10 minutes per IP) for authentication endpoints.
+ * Enforces rate limits (3 attempts per 10 minutes per IP) for authentication endpoints.
  */
 export const createRateLimitMiddleware = (
   type: 'login' | 'passwordReset' | 'registration'

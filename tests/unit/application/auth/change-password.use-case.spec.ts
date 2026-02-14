@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test';
 import { ChangePasswordUseCase } from '@/application/auth/change-password.use-case';
+import type { PasswordHasher } from '@/domain/auth/password-hasher.interface';
 import type { UserRepository } from '@/domain/user/user.repository';
-import { BcryptPasswordHasher } from '@/infrastructure/auth/password/bcrypt-password-hasher';
 
 describe('ChangePasswordUseCase', () => {
   let useCase: ChangePasswordUseCase;
   let mockUserRepository: UserRepository;
-  let mockPasswordHasher: BcryptPasswordHasher;
+  let mockPasswordHasher: PasswordHasher;
   let mockFindById: ReturnType<typeof mock>;
   let mockFindByEmailWithPassword: ReturnType<typeof mock>;
   let mockCompare: ReturnType<typeof mock>;
@@ -55,7 +55,7 @@ describe('ChangePasswordUseCase', () => {
     mockPasswordHasher = {
       compare: mockCompare,
       hash: mockHash,
-    } as unknown as BcryptPasswordHasher;
+    } as unknown as PasswordHasher;
 
     useCase = new ChangePasswordUseCase(mockUserRepository, mockPasswordHasher);
   });
@@ -63,6 +63,7 @@ describe('ChangePasswordUseCase', () => {
   it('should change password successfully with valid current password', async () => {
     const request = {
       userId: 'user-123',
+      tenantId: 'tenant-123',
       currentPassword: 'currentPassword123',
       newPassword: 'newPassword456',
     };
@@ -73,7 +74,7 @@ describe('ChangePasswordUseCase', () => {
 
     // Verify user was looked up
     expect(mockFindById).toHaveBeenCalledTimes(1);
-    expect(mockFindById).toHaveBeenCalledWith('user-123');
+    expect(mockFindById).toHaveBeenCalledWith('user-123', 'tenant-123');
 
     // Verify password hash was retrieved
     expect(mockFindByEmailWithPassword).toHaveBeenCalledTimes(1);
@@ -95,6 +96,7 @@ describe('ChangePasswordUseCase', () => {
   it('should throw error for invalid new password (too short)', () => {
     const request = {
       userId: 'user-123',
+      tenantId: 'tenant-123',
       currentPassword: 'currentPassword123',
       newPassword: 'short',
     };
@@ -107,6 +109,7 @@ describe('ChangePasswordUseCase', () => {
   it('should throw error for invalid new password (no letter)', () => {
     const request = {
       userId: 'user-123',
+      tenantId: 'tenant-123',
       currentPassword: 'currentPassword123',
       newPassword: '12345678',
     };
@@ -119,6 +122,7 @@ describe('ChangePasswordUseCase', () => {
   it('should throw error for invalid new password (no number)', () => {
     const request = {
       userId: 'user-123',
+      tenantId: 'tenant-123',
       currentPassword: 'currentPassword123',
       newPassword: 'password',
     };
@@ -133,6 +137,7 @@ describe('ChangePasswordUseCase', () => {
 
     const request = {
       userId: 'nonexistent-user',
+      tenantId: 'tenant-123',
       currentPassword: 'currentPassword123',
       newPassword: 'newPassword456',
     };
@@ -156,6 +161,7 @@ describe('ChangePasswordUseCase', () => {
 
     const request = {
       userId: 'user-123',
+      tenantId: 'tenant-123',
       currentPassword: 'currentPassword123',
       newPassword: 'newPassword456',
     };
@@ -168,6 +174,7 @@ describe('ChangePasswordUseCase', () => {
 
     const request = {
       userId: 'user-123',
+      tenantId: 'tenant-123',
       currentPassword: 'wrong-password',
       newPassword: 'newPassword456',
     };

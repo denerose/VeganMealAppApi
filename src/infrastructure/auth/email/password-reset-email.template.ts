@@ -1,6 +1,6 @@
 /**
  * Email template for password reset emails.
- * T069: Password reset email template implementation.
+ * Password reset email template implementation.
  */
 
 export type PasswordResetEmailData = {

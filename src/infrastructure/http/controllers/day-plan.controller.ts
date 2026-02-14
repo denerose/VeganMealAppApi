@@ -1,11 +1,12 @@
-import type { AssignMealToDayUseCase } from '@/application/planned-week/assign-meal-to-day.usecase';
-import type { GetPlannedWeekUseCase } from '@/application/planned-week/get-planned-week.usecase';
-import type { MealSlot } from '@/domain/planned-week/planned-week.entity';
+import type { AssignMealToDayUseCase } from '@/application/planned-week/assign-meal-to-day.use-case';
+import type { GetPlannedWeekUseCase } from '@/application/planned-week/get-planned-week.use-case';
+import { MealSlot } from '@/domain/shared/meal-slot.enum';
 import {
   type DayPlanResponseDto,
   validateUpdateDayPlanRequest,
 } from '@/infrastructure/http/dtos/planned-week.dto';
-import { createErrorBody } from '@/infrastructure/http/dtos/common.dto';
+import { createErrorBody, errorMessage } from '@/infrastructure/http/dtos/common.dto';
+import { jsonResponse } from '@/infrastructure/http/response.utils';
 import type { RouteContext } from '@/infrastructure/http/routes';
 
 export class DayPlanController {
@@ -18,10 +19,7 @@ export class DayPlanController {
     try {
       const dayPlanId = context.params.dayPlanId;
       if (!dayPlanId) {
-        return new Response(JSON.stringify(createErrorBody('Day plan ID is required')), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse(createErrorBody('Day plan ID is required'), 400);
       }
 
       // TODO: Extract tenantId from auth context
@@ -30,14 +28,9 @@ export class DayPlanController {
       // Day plan ID format: {plannedWeekId}:{date}
       const [plannedWeekId, date] = dayPlanId.split(':');
       if (!plannedWeekId || !date) {
-        return new Response(
-          JSON.stringify(
-            createErrorBody('Invalid day plan ID format. Expected: {weekId}:{YYYY-MM-DD}')
-          ),
-          {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          }
+        return jsonResponse(
+          createErrorBody('Invalid day plan ID format. Expected: {weekId}:{YYYY-MM-DD}'),
+          400
         );
       }
 
@@ -50,10 +43,7 @@ export class DayPlanController {
       const dayPlan = snapshot.dayPlans.find(dp => dp.date === date);
 
       if (!dayPlan) {
-        return new Response(JSON.stringify(createErrorBody('Day plan not found')), {
-          status: 404,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse(createErrorBody('Day plan not found'), 404);
       }
 
       const response: DayPlanResponseDto = {
@@ -69,23 +59,13 @@ export class DayPlanController {
         updatedAt: new Date().toISOString(),
       };
 
-      return new Response(JSON.stringify({ data: response }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse({ data: response });
     } catch (error) {
-      if (error instanceof Error && error.message.includes('not found')) {
-        return new Response(JSON.stringify(createErrorBody('Day plan not found')), {
-          status: 404,
-          headers: { 'Content-Type': 'application/json' },
-        });
+      if (errorMessage(error).includes('not found')) {
+        return jsonResponse(createErrorBody('Day plan not found'), 404);
       }
-
       console.error('Error fetching day plan:', error);
-      return new Response(JSON.stringify(createErrorBody('Internal server error')), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(createErrorBody('Internal server error'), 500);
     }
   }
 
@@ -93,23 +73,14 @@ export class DayPlanController {
     try {
       const dayPlanId = context.params.dayPlanId;
       if (!dayPlanId) {
-        return new Response(JSON.stringify(createErrorBody('Day plan ID is required')), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse(createErrorBody('Day plan ID is required'), 400);
       }
 
       const body = (await context.request.json()) as Record<string, unknown>;
       const validation = validateUpdateDayPlanRequest(body);
 
       if (!validation.valid) {
-        return new Response(
-          JSON.stringify(createErrorBody('Validation failed', validation.errors)),
-          {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
+        return jsonResponse(createErrorBody('Validation failed', validation.errors), 400);
       }
 
       // TODO: Extract tenantId from auth context
@@ -118,14 +89,9 @@ export class DayPlanController {
       // Day plan ID format: {plannedWeekId}:{date}
       const [plannedWeekId, date] = dayPlanId.split(':');
       if (!plannedWeekId || !date) {
-        return new Response(
-          JSON.stringify(
-            createErrorBody('Invalid day plan ID format. Expected: {weekId}:{YYYY-MM-DD}')
-          ),
-          {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          }
+        return jsonResponse(
+          createErrorBody('Invalid day plan ID format. Expected: {weekId}:{YYYY-MM-DD}'),
+          400
         );
       }
 
@@ -137,7 +103,7 @@ export class DayPlanController {
           tenantId,
           plannedWeekId,
           date,
-          slot: 'lunch' as MealSlot,
+          slot: MealSlot.LUNCH,
           meal: lunchMealId ? { mealId: lunchMealId } : undefined,
         });
       }
@@ -148,7 +114,7 @@ export class DayPlanController {
           tenantId,
           plannedWeekId,
           date,
-          slot: 'dinner' as MealSlot,
+          slot: MealSlot.DINNER,
           meal: dinnerMealId ? { mealId: dinnerMealId, makesLunch } : undefined,
         });
       }
@@ -163,10 +129,7 @@ export class DayPlanController {
       const dayPlan = snapshot.dayPlans.find(dp => dp.date === date);
 
       if (!dayPlan) {
-        return new Response(JSON.stringify(createErrorBody('Day plan not found after update')), {
-          status: 404,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse(createErrorBody('Day plan not found after update'), 404);
       }
 
       const response: DayPlanResponseDto = {
@@ -182,23 +145,13 @@ export class DayPlanController {
         updatedAt: new Date().toISOString(),
       };
 
-      return new Response(JSON.stringify({ data: response }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse({ data: response });
     } catch (error) {
-      if (error instanceof Error && error.message.includes('not found')) {
-        return new Response(JSON.stringify(createErrorBody('Planned week or day plan not found')), {
-          status: 404,
-          headers: { 'Content-Type': 'application/json' },
-        });
+      if (errorMessage(error).includes('not found')) {
+        return jsonResponse(createErrorBody('Planned week or day plan not found'), 404);
       }
-
       console.error('Error updating day plan:', error);
-      return new Response(JSON.stringify(createErrorBody('Internal server error')), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(createErrorBody('Internal server error'), 500);
     }
   }
 }

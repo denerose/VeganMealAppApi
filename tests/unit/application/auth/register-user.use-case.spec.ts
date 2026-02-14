@@ -1,69 +1,63 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test';
-import type { PrismaClient } from '@prisma/client';
 import { RegisterUserUseCase } from '@/application/auth/register-user.use-case';
-import { BcryptPasswordHasher } from '@/infrastructure/auth/password/bcrypt-password-hasher';
-import { JWTGenerator } from '@/infrastructure/auth/jwt/jwt-generator';
+import type { AuthRepository } from '@/domain/auth/auth.repository';
+import type { PasswordHasher } from '@/domain/auth/password-hasher.interface';
+import type { TokenGenerator } from '@/domain/auth/token-generator.interface';
+import type { UserRepository } from '@/domain/user/user.repository';
 
 describe('RegisterUserUseCase', () => {
   let useCase: RegisterUserUseCase;
-  let mockPrisma: PrismaClient;
-  let mockPasswordHasher: BcryptPasswordHasher;
-  let mockJwtGenerator: JWTGenerator;
-  let mockFindUnique: ReturnType<typeof mock>;
-  let mockUserCreate: ReturnType<typeof mock>;
-  let mockTenantCreate: ReturnType<typeof mock>;
+  let mockUserRepository: UserRepository;
+  let mockAuthRepository: AuthRepository;
+  let mockPasswordHasher: PasswordHasher;
+  let mockJwtGenerator: TokenGenerator;
+  let mockFindByEmail: ReturnType<typeof mock>;
+  let mockCreateTenantAndUser: ReturnType<typeof mock>;
   let mockHash: ReturnType<typeof mock>;
   let mockGenerate: ReturnType<typeof mock>;
 
   beforeEach(() => {
-    // Create mock functions
-    mockFindUnique = mock(() => Promise.resolve(null));
-    mockUserCreate = mock(() =>
+    mockFindByEmail = mock(() => Promise.resolve(null));
+    mockCreateTenantAndUser = mock(() =>
       Promise.resolve({
-        id: 'user-123',
-        email: 'test@example.com',
-        nickname: 'Test User',
-        passwordHash: 'hashed-password',
-        tenantId: 'tenant-123',
-        isTenantAdmin: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-    );
-    mockTenantCreate = mock(() =>
-      Promise.resolve({
-        id: 'tenant-123',
-        name: 'Test Tenant',
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        tenant: { id: 'tenant-123', name: 'Test Tenant' },
+        user: {
+          id: 'user-123',
+          email: 'test@example.com',
+          nickname: 'Test User',
+          tenantId: 'tenant-123',
+          isTenantAdmin: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       })
     );
     mockHash = mock(() => Promise.resolve('hashed-password'));
     mockGenerate = mock(() => Promise.resolve('jwt-token-123'));
 
-    // Mock PrismaClient
-    mockPrisma = {
-      user: {
-        findUnique: mockFindUnique,
-        create: mockUserCreate,
-      },
-      tenant: {
-        create: mockTenantCreate,
-      },
-    } as unknown as PrismaClient;
+    mockUserRepository = {
+      findByEmail: mockFindByEmail,
+    } as unknown as UserRepository;
 
-    // Mock BcryptPasswordHasher
+    mockAuthRepository = {
+      createTenantAndUser: mockCreateTenantAndUser,
+    } as unknown as AuthRepository;
+
     mockPasswordHasher = {
       hash: mockHash,
       compare: mock(() => Promise.resolve(true)),
-    } as unknown as BcryptPasswordHasher;
+    } as unknown as PasswordHasher;
 
-    // Mock JWTGenerator
     mockJwtGenerator = {
       generate: mockGenerate,
-    } as unknown as JWTGenerator;
+    } as unknown as TokenGenerator;
 
-    useCase = new RegisterUserUseCase(mockPrisma, mockPasswordHasher, mockJwtGenerator);
+    useCase = new RegisterUserUseCase(
+      mockUserRepository,
+      mockAuthRepository,
+      mockPasswordHasher,
+      mockJwtGenerator
+    );
   });
 
   it('should register a new user successfully', async () => {
@@ -83,27 +77,18 @@ describe('RegisterUserUseCase', () => {
     expect(result.user.tenantName).toBe('Test Tenant');
     expect(result.user.isTenantAdmin).toBe(true);
 
-    // Verify tenant was created
-    expect(mockTenantCreate).toHaveBeenCalledTimes(1);
-    expect(mockTenantCreate).toHaveBeenCalledWith({
-      data: { name: 'Test Tenant' },
+    // Verify createTenantAndUser was called
+    expect(mockCreateTenantAndUser).toHaveBeenCalledTimes(1);
+    expect(mockCreateTenantAndUser).toHaveBeenCalledWith({
+      tenantName: 'Test Tenant',
+      email: 'test@example.com',
+      nickname: 'Test User',
+      passwordHash: 'hashed-password',
     });
 
     // Verify password was hashed
     expect(mockHash).toHaveBeenCalledTimes(1);
     expect(mockHash).toHaveBeenCalledWith('password123');
-
-    // Verify user was created
-    expect(mockUserCreate).toHaveBeenCalledTimes(1);
-    expect(mockUserCreate).toHaveBeenCalledWith({
-      data: {
-        email: 'test@example.com',
-        nickname: 'Test User',
-        passwordHash: 'hashed-password',
-        tenantId: 'tenant-123',
-        isTenantAdmin: true,
-      },
-    });
 
     // Verify JWT token was generated
     expect(mockGenerate).toHaveBeenCalledTimes(1);
@@ -213,7 +198,7 @@ describe('RegisterUserUseCase', () => {
   });
 
   it('should throw error for duplicate email', () => {
-    mockFindUnique.mockResolvedValueOnce({
+    mockFindByEmail.mockResolvedValueOnce({
       id: 'existing-user',
       email: 'test@example.com',
       nickname: 'Existing User',

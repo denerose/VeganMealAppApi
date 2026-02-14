@@ -1,10 +1,10 @@
-import type { IngredientSnapshot } from '../../domain/ingredient/ingredient.entity';
+import type { IngredientSnapshot } from '@/domain/ingredient/ingredient.entity';
 import type {
   IngredientRepository,
   IngredientFilters,
   PaginationOptions,
   PaginatedResult,
-} from '../../domain/ingredient/ingredient.repository';
+} from '@/domain/ingredient/ingredient.repository';
 
 export type ListIngredientsRequest = {
   tenantId: string;
@@ -13,7 +13,7 @@ export type ListIngredientsRequest = {
 };
 
 export class ListIngredientsUseCase {
-  constructor(private ingredientRepository: IngredientRepository) {}
+  constructor(private readonly ingredientRepository: IngredientRepository) {}
 
   async execute(request: ListIngredientsRequest): Promise<PaginatedResult<IngredientSnapshot>> {
     const result = await this.ingredientRepository.findAll(

@@ -1,6 +1,7 @@
+import { DAILY_PREFERENCE_KEYS } from '@/domain/shared/meal-quality.constants';
 import { WeekStartDay, WEEK_START_DAY_VALUES } from '@/domain/shared/week-start-day.enum';
 import { DayOfWeek, DAY_OF_WEEK_VALUES } from '@/domain/shared/day-of-week.enum';
-import type { UpdateUserSettingsDto, DailyPreferencesDto } from './user-settings.dto';
+import type { UpdateUserSettingsDto, DailyPreferencesDto } from '../dtos/user-settings.dto';
 
 /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unnecessary-type-assertion -- validated input from request body */
 function isRecord(x: unknown): x is Record<string, unknown> {
@@ -69,9 +70,9 @@ export function validateUpdateUserSettingsDto(data: unknown): UpdateUserSettings
       }
 
       const prefsObj = prefsVal as Record<string, unknown>;
-      const validQualityKeys = ['isCreamy', 'isAcidic', 'greenVeg', 'isEasyToMake', 'needsPrep'];
       const invalidKeys = Object.keys(prefsObj).filter(
-        (key: string) => !validQualityKeys.includes(key)
+        (key: string) =>
+          !DAILY_PREFERENCE_KEYS.includes(key as (typeof DAILY_PREFERENCE_KEYS)[number])
       );
 
       if (invalidKeys.length > 0) {
