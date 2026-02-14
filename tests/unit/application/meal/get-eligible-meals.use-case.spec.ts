@@ -1,20 +1,47 @@
 import { describe, expect, it } from 'bun:test';
 
 import { GetEligibleMealsUseCase } from '@/application/meal/get-eligible-meals.use-case';
+import type { Meal, MealId } from '@/domain/meal/meal.entity';
 import type {
+  MealFilters,
   MealQualitiesFilter,
   MealRepository,
   MealSummary,
+  PaginationOptions,
+  PaginatedResult,
 } from '@/domain/meal/meal.repository';
-import type { UserSettingsRepository } from '@/domain/user/user-settings.repository';
 import { UserSettings } from '@/domain/user/user-settings.entity';
 import type { UserSettingsRepository } from '@/domain/user/user-settings.repository';
 import { DayOfWeek, DAY_OF_WEEK_VALUES } from '@/domain/shared/day-of-week.enum';
 import { MealSlot } from '@/domain/shared/meal-slot.enum';
 import { WeekStartDay } from '@/domain/shared/week-start-day.enum';
 
-class InMemoryMealRepository {
+class InMemoryMealRepository implements MealRepository {
   public lastFilter: MealQualitiesFilter | null = null;
+
+  create(): Promise<Meal> {
+    throw new Error('Not implemented');
+  }
+
+  findById(): Promise<Meal | null> {
+    return Promise.resolve(null);
+  }
+
+  findAll(
+    _tenantId: string,
+    _filters?: MealFilters,
+    _pagination?: PaginationOptions
+  ): Promise<PaginatedResult<Meal>> {
+    return Promise.resolve({ items: [], total: 0, limit: 0, offset: 0 });
+  }
+
+  save(): Promise<Meal> {
+    throw new Error('Not implemented');
+  }
+
+  delete(_id: MealId, _tenantId: string): Promise<void> {
+    return Promise.resolve();
+  }
 
   findByQualities(_tenantId: string, filter: MealQualitiesFilter): Promise<MealSummary[]> {
     this.lastFilter = filter;
@@ -37,11 +64,19 @@ class InMemoryMealRepository {
   }
 }
 
-class InMemoryUserSettingsRepository {
+class InMemoryUserSettingsRepository implements UserSettingsRepository {
   constructor(private readonly settings: UserSettings | null) {}
 
   async findByTenantId(): Promise<UserSettings | null> {
     return Promise.resolve(this.settings);
+  }
+
+  async create(): Promise<UserSettings> {
+    throw new Error('Not implemented');
+  }
+
+  async save(): Promise<UserSettings> {
+    throw new Error('Not implemented');
   }
 }
 
@@ -61,10 +96,7 @@ describe('GetEligibleMealsUseCase', () => {
   it('throws when provided date is invalid', () => {
     const mealRepo = new InMemoryMealRepository();
     const settingsRepo = new InMemoryUserSettingsRepository(defaultSettings);
-    const useCase = new GetEligibleMealsUseCase(
-      mealRepo as MealRepository,
-      settingsRepo as UserSettingsRepository
-    );
+    const useCase = new GetEligibleMealsUseCase(mealRepo, settingsRepo);
 
     return expect(
       useCase.execute({
@@ -78,10 +110,7 @@ describe('GetEligibleMealsUseCase', () => {
   it('throws when user settings are missing', () => {
     const mealRepo = new InMemoryMealRepository();
     const settingsRepo = new InMemoryUserSettingsRepository(null);
-    const useCase = new GetEligibleMealsUseCase(
-      mealRepo as MealRepository,
-      settingsRepo as UserSettingsRepository
-    );
+    const useCase = new GetEligibleMealsUseCase(mealRepo, settingsRepo);
 
     return expect(
       useCase.execute({
@@ -95,10 +124,7 @@ describe('GetEligibleMealsUseCase', () => {
   it('applies lunch flags and day preferences to the meal filter', async () => {
     const mealRepo = new InMemoryMealRepository();
     const settingsRepo = new InMemoryUserSettingsRepository(defaultSettings);
-    const useCase = new GetEligibleMealsUseCase(
-      mealRepo as MealRepository,
-      settingsRepo as UserSettingsRepository
-    );
+    const useCase = new GetEligibleMealsUseCase(mealRepo, settingsRepo);
 
     await useCase.execute({
       tenantId: 'tenant-1',
@@ -124,10 +150,7 @@ describe('GetEligibleMealsUseCase', () => {
       updatedAt: new Date(),
     });
     const settingsRepo = new InMemoryUserSettingsRepository(emptyPrefs);
-    const useCase = new GetEligibleMealsUseCase(
-      mealRepo as MealRepository,
-      settingsRepo as UserSettingsRepository
-    );
+    const useCase = new GetEligibleMealsUseCase(mealRepo, settingsRepo);
 
     await useCase.execute({
       tenantId: 'tenant-1',
