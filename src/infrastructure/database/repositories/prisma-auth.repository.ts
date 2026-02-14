@@ -14,30 +14,32 @@ export class PrismaAuthRepository implements AuthRepository {
   async createTenantAndUser(
     params: CreateTenantAndUserParams
   ): Promise<{ tenant: { id: string; name: string }; user: User }> {
-    const tenant = await this.prisma.tenant.create({
-      data: { name: params.tenantName },
+    return this.prisma.$transaction(async (tx) => {
+      const tenant = await tx.tenant.create({
+        data: { name: params.tenantName },
+      });
+      const user = await tx.user.create({
+        data: {
+          email: params.email,
+          nickname: params.nickname,
+          passwordHash: params.passwordHash,
+          tenantId: tenant.id,
+          isTenantAdmin: true,
+        },
+      });
+      return {
+        tenant: { id: tenant.id, name: tenant.name },
+        user: {
+          id: user.id,
+          email: user.email,
+          nickname: user.nickname,
+          isTenantAdmin: user.isTenantAdmin,
+          tenantId: user.tenantId,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        },
+      };
     });
-    const user = await this.prisma.user.create({
-      data: {
-        email: params.email,
-        nickname: params.nickname,
-        passwordHash: params.passwordHash,
-        tenantId: tenant.id,
-        isTenantAdmin: true,
-      },
-    });
-    return {
-      tenant: { id: tenant.id, name: tenant.name },
-      user: {
-        id: user.id,
-        email: user.email,
-        nickname: user.nickname,
-        isTenantAdmin: user.isTenantAdmin,
-        tenantId: user.tenantId,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-      },
-    };
   }
 
   async createPasswordResetToken(
