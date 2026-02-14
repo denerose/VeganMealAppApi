@@ -1,6 +1,6 @@
 import type { AuthRepository } from '@/domain/auth/auth.repository';
+import type { PasswordHasher } from '@/domain/auth/password-hasher.interface';
 import type { UserRepository } from '@/domain/user/user.repository';
-import { BcryptPasswordHasher } from '@/infrastructure/auth/password/bcrypt-password-hasher';
 import { PasswordValidator } from '@/infrastructure/auth/password/password-validator';
 
 export type ResetPasswordRequest = {
@@ -18,9 +18,9 @@ export type ResetPasswordResponse = {
  */
 export class ResetPasswordUseCase {
   constructor(
-    private authRepository: AuthRepository,
-    private userRepository: UserRepository,
-    private passwordHasher: BcryptPasswordHasher
+    private readonly authRepository: AuthRepository,
+    private readonly userRepository: UserRepository,
+    private readonly passwordHasher: PasswordHasher
   ) {}
 
   /**
@@ -36,10 +36,8 @@ export class ResetPasswordUseCase {
       throw new Error(passwordValidation.error);
     }
 
-    // T067: Find valid, unused, non-expired token
     const resetToken = await this.authRepository.findPasswordResetTokenByToken(request.token);
 
-    // T080: Error handling for expired/invalid reset tokens (401 Unauthorized)
     if (!resetToken) {
       throw new Error('Invalid or expired reset token');
     }
@@ -50,7 +48,6 @@ export class ResetPasswordUseCase {
     // Update user's password
     await this.userRepository.updatePasswordHash(resetToken.userId, newPasswordHash);
 
-    // T068: Mark token as used (mark usedAt timestamp)
     await this.authRepository.markPasswordResetTokenAsUsed(resetToken.id, new Date());
 
     return {

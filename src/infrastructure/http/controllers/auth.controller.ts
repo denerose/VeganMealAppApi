@@ -16,18 +16,19 @@ import type {
   UserProfile,
 } from '../dtos/auth.dto';
 import { toAuthResponse, toUserProfile } from '../dtos/auth.dto';
-import { createErrorBody } from '../dtos/common.dto';
+import { createErrorBody, errorMessage } from '../dtos/common.dto';
+import { jsonResponse } from '../response.utils';
 import type { RouteContext } from '../routes';
 
 export class AuthController {
   constructor(
-    private registerUserUseCase: RegisterUserUseCase,
-    private authenticateUserUseCase: AuthenticateUserUseCase,
-    private changePasswordUseCase: ChangePasswordUseCase,
-    private requestPasswordResetUseCase: RequestPasswordResetUseCase,
-    private resetPasswordUseCase: ResetPasswordUseCase,
-    private getUserProfileUseCase: GetUserProfileUseCase,
-    private updateUserProfileUseCase: UpdateUserProfileUseCase
+    private readonly registerUserUseCase: RegisterUserUseCase,
+    private readonly authenticateUserUseCase: AuthenticateUserUseCase,
+    private readonly changePasswordUseCase: ChangePasswordUseCase,
+    private readonly requestPasswordResetUseCase: RequestPasswordResetUseCase,
+    private readonly resetPasswordUseCase: ResetPasswordUseCase,
+    private readonly getUserProfileUseCase: GetUserProfileUseCase,
+    private readonly updateUserProfileUseCase: UpdateUserProfileUseCase
   ) {}
 
   async register(context: RouteContext): Promise<Response> {
@@ -42,61 +43,36 @@ export class AuthController {
         !registerRequest.nickname ||
         !registerRequest.tenantName
       ) {
-        return new Response(
-          JSON.stringify(
-            createErrorBody('Missing required fields: email, password, nickname, tenantName')
-          ),
-          {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          }
+        return jsonResponse(
+          createErrorBody('Missing required fields: email, password, nickname, tenantName'),
+          400
         );
       }
 
       const result = await this.registerUserUseCase.execute(registerRequest);
       const authResponse: AuthResponse = toAuthResponse(result);
 
-      return new Response(JSON.stringify(authResponse), {
-        status: 201,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(authResponse, 201);
     } catch (error) {
       console.error('Error registering user:', error);
 
-      if (error instanceof Error) {
-        // T035: Add error handling for duplicate email (409 Conflict)
-        if (error.message.includes('Unique constraint') || error.message.includes('email')) {
-          return new Response(JSON.stringify(createErrorBody('Email already registered')), {
-            status: 409,
-            headers: { 'Content-Type': 'application/json' },
-          });
-        }
-
-        // T036: Add error handling for validation errors (400 Bad Request)
-        if (
-          error.message.includes('must be') ||
-          error.message.includes('Invalid') ||
-          error.message.includes('Missing') ||
-          error.message.includes('required')
-        ) {
-          return new Response(JSON.stringify(createErrorBody(error.message)), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          });
-        }
+      const msg = errorMessage(error);
+      if (msg.includes('Unique constraint') || msg.includes('email')) {
+        return jsonResponse(createErrorBody('Email already registered'), 409);
+      }
+      if (
+        msg.includes('must be') ||
+        msg.includes('Invalid') ||
+        msg.includes('Missing') ||
+        msg.includes('required')
+      ) {
+        return jsonResponse(createErrorBody(msg), 400);
       }
 
-      return new Response(JSON.stringify(createErrorBody('Internal server error')), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(createErrorBody('Internal server error'), 500);
     }
   }
 
-  /**
-   * T049: Login method for authenticating users.
-   * Authenticates user with email and password, returns JWT token.
-   */
   async login(context: RouteContext): Promise<Response> {
     try {
       const body = (await context.request.json()) as unknown;
@@ -104,66 +80,37 @@ export class AuthController {
 
       // Basic validation
       if (!loginRequest.email || !loginRequest.password) {
-        return new Response(
-          JSON.stringify(createErrorBody('Missing required fields: email, password')),
-          {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
+        return jsonResponse(createErrorBody('Missing required fields: email, password'), 400);
       }
 
       const result = await this.authenticateUserUseCase.execute(loginRequest);
       const authResponse: AuthResponse = toAuthResponse(result);
 
-      return new Response(JSON.stringify(authResponse), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(authResponse);
     } catch (error) {
       console.error('Error authenticating user:', error);
 
-      if (error instanceof Error) {
-        // T044: Generic error message (don't reveal if email exists)
-        if (error.message === 'Invalid credentials') {
-          return new Response(JSON.stringify(createErrorBody('Invalid credentials')), {
-            status: 401,
-            headers: { 'Content-Type': 'application/json' },
-          });
-        }
-
-        // Validation errors
-        if (
-          error.message.includes('must be') ||
-          error.message.includes('Invalid') ||
-          error.message.includes('Missing') ||
-          error.message.includes('required')
-        ) {
-          return new Response(JSON.stringify(createErrorBody(error.message)), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          });
-        }
+      const msg = errorMessage(error);
+      if (msg === 'Invalid credentials') {
+        return jsonResponse(createErrorBody('Invalid credentials'), 401);
+      }
+      if (
+        msg.includes('must be') ||
+        msg.includes('Invalid') ||
+        msg.includes('Missing') ||
+        msg.includes('required')
+      ) {
+        return jsonResponse(createErrorBody(msg), 400);
       }
 
-      return new Response(JSON.stringify(createErrorBody('Internal server error')), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(createErrorBody('Internal server error'), 500);
     }
   }
 
-  /**
-   * T071: Password change method for authenticated users.
-   * Changes password after verifying current password.
-   */
   async changePassword(context: RouteContext): Promise<Response> {
     try {
       if (!context.userId) {
-        return new Response(JSON.stringify(createErrorBody('Authentication required')), {
-          status: 401,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse(createErrorBody('Authentication required'), 401);
       }
 
       const body = (await context.request.json()) as unknown;
@@ -171,60 +118,40 @@ export class AuthController {
 
       // Basic validation
       if (!changePasswordRequest.currentPassword || !changePasswordRequest.newPassword) {
-        return new Response(
-          JSON.stringify(createErrorBody('Missing required fields: currentPassword, newPassword')),
-          {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          }
+        return jsonResponse(
+          createErrorBody('Missing required fields: currentPassword, newPassword'),
+          400
         );
       }
 
       const result = await this.changePasswordUseCase.execute({
         userId: context.userId,
+        tenantId: context.tenantId,
         currentPassword: changePasswordRequest.currentPassword,
         newPassword: changePasswordRequest.newPassword,
       });
 
-      return new Response(JSON.stringify(result), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(result);
     } catch (error) {
       console.error('Error changing password:', error);
 
-      if (error instanceof Error) {
-        if (error.message === 'Current password is incorrect') {
-          return new Response(JSON.stringify(createErrorBody(error.message)), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          });
-        }
-
-        if (
-          error.message.includes('must be') ||
-          error.message.includes('Invalid') ||
-          error.message.includes('Missing') ||
-          error.message.includes('required')
-        ) {
-          return new Response(JSON.stringify(createErrorBody(error.message)), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          });
-        }
+      const msg = errorMessage(error);
+      if (msg === 'Current password is incorrect') {
+        return jsonResponse(createErrorBody(msg), 400);
+      }
+      if (
+        msg.includes('must be') ||
+        msg.includes('Invalid') ||
+        msg.includes('Missing') ||
+        msg.includes('required')
+      ) {
+        return jsonResponse(createErrorBody(msg), 400);
       }
 
-      return new Response(JSON.stringify(createErrorBody('Internal server error')), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(createErrorBody('Internal server error'), 500);
     }
   }
 
-  /**
-   * T072: Password reset request method.
-   * Generates reset token and sends email.
-   */
   async requestPasswordReset(context: RouteContext): Promise<Response> {
     try {
       const body = (await context.request.json()) as unknown;
@@ -232,10 +159,7 @@ export class AuthController {
 
       // Basic validation
       if (!passwordResetRequest.email) {
-        return new Response(JSON.stringify(createErrorBody('Missing required field: email')), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse(createErrorBody('Missing required field: email'), 400);
       }
 
       // Get reset URL from environment or use default
@@ -246,25 +170,14 @@ export class AuthController {
         resetUrl,
       });
 
-      // T079: Generic success message (don't reveal if email exists)
-      return new Response(JSON.stringify(result), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(result);
     } catch (error) {
       console.error('Error requesting password reset:', error);
 
-      return new Response(JSON.stringify(createErrorBody('Internal server error')), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(createErrorBody('Internal server error'), 500);
     }
   }
 
-  /**
-   * T073: Password reset completion method.
-   * Resets password using reset token.
-   */
   async resetPassword(context: RouteContext): Promise<Response> {
     try {
       const body = (await context.request.json()) as unknown;
@@ -272,67 +185,36 @@ export class AuthController {
 
       // Basic validation
       if (!resetPasswordRequest.token || !resetPasswordRequest.newPassword) {
-        return new Response(
-          JSON.stringify(createErrorBody('Missing required fields: token, newPassword')),
-          {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
+        return jsonResponse(createErrorBody('Missing required fields: token, newPassword'), 400);
       }
 
       const result = await this.resetPasswordUseCase.execute(resetPasswordRequest);
 
-      return new Response(JSON.stringify(result), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(result);
     } catch (error) {
       console.error('Error resetting password:', error);
 
-      if (error instanceof Error) {
-        // T080: Error handling for expired/invalid reset tokens (401 Unauthorized)
-        if (
-          error.message === 'Invalid or expired reset token' ||
-          error.message.includes('Invalid or expired')
-        ) {
-          return new Response(JSON.stringify(createErrorBody(error.message)), {
-            status: 401,
-            headers: { 'Content-Type': 'application/json' },
-          });
-        }
-
-        if (
-          error.message.includes('must be') ||
-          error.message.includes('Invalid') ||
-          error.message.includes('Missing') ||
-          error.message.includes('required')
-        ) {
-          return new Response(JSON.stringify(createErrorBody(error.message)), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          });
-        }
+      const msg = errorMessage(error);
+      if (msg === 'Invalid or expired reset token' || msg.includes('Invalid or expired')) {
+        return jsonResponse(createErrorBody(msg), 401);
+      }
+      if (
+        msg.includes('must be') ||
+        msg.includes('Invalid') ||
+        msg.includes('Missing') ||
+        msg.includes('required')
+      ) {
+        return jsonResponse(createErrorBody(msg), 400);
       }
 
-      return new Response(JSON.stringify(createErrorBody('Internal server error')), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(createErrorBody('Internal server error'), 500);
     }
   }
 
-  /**
-   * T088: Get user profile method.
-   * Retrieves the authenticated user's profile information.
-   */
   async getProfile(context: RouteContext): Promise<Response> {
     try {
       if (!context.userId || !context.tenantId) {
-        return new Response(JSON.stringify(createErrorBody('Authentication required')), {
-          status: 401,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse(createErrorBody('Authentication required'), 401);
       }
 
       const result = await this.getUserProfileUseCase.execute({
@@ -342,41 +224,23 @@ export class AuthController {
 
       const profile: UserProfile = toUserProfile(result);
 
-      return new Response(JSON.stringify(profile), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(profile);
     } catch (error) {
       console.error('Error getting user profile:', error);
 
-      if (error instanceof Error) {
-        if (error.message === 'User not found' || error.message === 'Tenant not found') {
-          return new Response(JSON.stringify(createErrorBody(error.message)), {
-            status: 404,
-            headers: { 'Content-Type': 'application/json' },
-          });
-        }
+      const msg = errorMessage(error);
+      if (msg === 'User not found' || msg === 'Tenant not found') {
+        return jsonResponse(createErrorBody(msg), 404);
       }
 
-      return new Response(JSON.stringify(createErrorBody('Internal server error')), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(createErrorBody('Internal server error'), 500);
     }
   }
 
-  /**
-   * T089: Update user profile method.
-   * Updates the authenticated user's profile (nickname only, email is immutable).
-   * T094: Error handling for email update attempts (400 Bad Request).
-   */
   async updateProfile(context: RouteContext): Promise<Response> {
     try {
       if (!context.userId || !context.tenantId) {
-        return new Response(JSON.stringify(createErrorBody('Authentication required')), {
-          status: 401,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse(createErrorBody('Authentication required'), 401);
       }
 
       const body = (await context.request.json()) as unknown;
@@ -384,18 +248,11 @@ export class AuthController {
 
       // Basic validation
       if (!updateProfileRequest.nickname) {
-        return new Response(JSON.stringify(createErrorBody('Missing required field: nickname')), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse(createErrorBody('Missing required field: nickname'), 400);
       }
 
-      // T094: Error handling for email update attempts (400 Bad Request)
       if (updateProfileRequest.email !== undefined) {
-        return new Response(JSON.stringify(createErrorBody('Email cannot be changed')), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse(createErrorBody('Email cannot be changed'), 400);
       }
 
       const result = await this.updateUserProfileUseCase.execute({
@@ -407,47 +264,27 @@ export class AuthController {
 
       const profile: UserProfile = toUserProfile(result);
 
-      return new Response(JSON.stringify(profile), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(profile);
     } catch (error) {
       console.error('Error updating user profile:', error);
 
-      if (error instanceof Error) {
-        // T094: Error handling for email update attempts (400 Bad Request)
-        if (error.message === 'Email cannot be changed') {
-          return new Response(JSON.stringify(createErrorBody(error.message)), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          });
-        }
-
-        if (error.message === 'User not found' || error.message === 'Tenant not found') {
-          return new Response(JSON.stringify(createErrorBody(error.message)), {
-            status: 404,
-            headers: { 'Content-Type': 'application/json' },
-          });
-        }
-
-        // Validation errors
-        if (
-          error.message.includes('must be') ||
-          error.message.includes('Invalid') ||
-          error.message.includes('Missing') ||
-          error.message.includes('required')
-        ) {
-          return new Response(JSON.stringify(createErrorBody(error.message)), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          });
-        }
+      const msg = errorMessage(error);
+      if (msg === 'Email cannot be changed') {
+        return jsonResponse(createErrorBody(msg), 400);
+      }
+      if (msg === 'User not found' || msg === 'Tenant not found') {
+        return jsonResponse(createErrorBody(msg), 404);
+      }
+      if (
+        msg.includes('must be') ||
+        msg.includes('Invalid') ||
+        msg.includes('Missing') ||
+        msg.includes('required')
+      ) {
+        return jsonResponse(createErrorBody(msg), 400);
       }
 
-      return new Response(JSON.stringify(createErrorBody('Internal server error')), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(createErrorBody('Internal server error'), 500);
     }
   }
 }

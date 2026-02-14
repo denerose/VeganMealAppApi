@@ -8,6 +8,7 @@ import type {
   MealQualitiesFilter,
   MealSummary,
 } from '@/domain/meal/meal.repository';
+import { MEAL_QUALITIES_FILTER_KEYS } from '@/domain/shared/meal-quality.constants';
 
 type MealWithQualities = Prisma.MealGetPayload<{ include: { qualities: true } }>;
 type MealWithQualitiesAndIngredients = Prisma.MealGetPayload<{
@@ -25,18 +26,7 @@ export class PrismaMealRepository implements MealRepository {
       where.isArchived = false;
     }
     where.qualities = {};
-    (
-      [
-        'isDinner',
-        'isLunch',
-        'isCreamy',
-        'isAcidic',
-        'greenVeg',
-        'makesLunch',
-        'isEasyToMake',
-        'needsPrep',
-      ] as const
-    ).forEach(key => {
+    MEAL_QUALITIES_FILTER_KEYS.forEach(key => {
       if (filter[key] !== undefined) {
         (where.qualities as Record<string, boolean>)[key] = filter[key];
       }

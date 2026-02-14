@@ -1,4 +1,4 @@
-import type { PrismaClient, UserSettings as PrismaUserSettings } from '@prisma/client';
+import type { Prisma, PrismaClient, UserSettings as PrismaUserSettings } from '@prisma/client';
 import type { UserSettingsRepository } from '@/domain/user/user-settings.repository';
 import type { UserSettings, DailyPreferences } from '@/domain/user/user-settings.entity';
 import { UserSettings as UserSettingsEntity } from '@/domain/user/user-settings.entity';
@@ -29,7 +29,7 @@ export class PrismaUserSettingsRepository implements UserSettingsRepository {
       data: {
         tenantId,
         weekStartDay: settings.weekStartDay,
-        dailyPreferences: settings.dailyPreferences as PrismaUserSettings['dailyPreferences'],
+        dailyPreferences: settings.dailyPreferences as unknown as Prisma.InputJsonValue,
       },
     });
 
@@ -52,7 +52,7 @@ export class PrismaUserSettingsRepository implements UserSettingsRepository {
       where: { id: settingsId },
       data: {
         weekStartDay: settings.weekStartDay,
-        dailyPreferences: settings.dailyPreferences as PrismaUserSettings['dailyPreferences'],
+        dailyPreferences: settings.dailyPreferences as unknown as Prisma.InputJsonValue,
         updatedAt: settings.updatedAt,
       },
     });

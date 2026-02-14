@@ -1,3 +1,4 @@
+import type { PaginationOptions, PaginatedResult } from '@/domain/shared/pagination.types';
 import { PlannedWeek } from '@/domain/planned-week/planned-week.entity';
 
 export type PlannedWeekFilters = {
@@ -5,17 +6,7 @@ export type PlannedWeekFilters = {
   endDate?: string; // Filter weeks starting on or before this date (YYYY-MM-DD)
 };
 
-export type PaginationOptions = {
-  limit: number;
-  offset: number;
-};
-
-export type PaginatedResult<T> = {
-  items: T[];
-  total: number;
-  limit: number;
-  offset: number;
-};
+export type { PaginationOptions, PaginatedResult };
 
 export interface PlannedWeekRepository {
   create(plannedWeek: PlannedWeek): Promise<PlannedWeek>;

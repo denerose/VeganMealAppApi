@@ -12,6 +12,12 @@
  */
 
 import { v5 as uuidv5 } from 'uuid';
+import { DayOfWeek } from '../src/domain/shared/day-of-week.enum';
+import { ShortDay } from '../src/domain/shared/short-day.enum';
+import { WeekStartDay } from '../src/domain/shared/week-start-day.enum';
+import { DAY_INDEX_TO_DAY_OF_WEEK } from '../src/domain/shared/day-of-week.enum';
+import { DAY_INDEX_TO_SHORT_DAY } from '../src/domain/shared/short-day.enum';
+import { WEEK_START_DAY_INDEX } from '../src/domain/shared/week-start-day.enum';
 import { StorageType } from '../src/domain/shared/storage-type.enum';
 
 /**
@@ -270,167 +276,73 @@ export const SEED_MEALS = [
 export const SEED_USER_SETTINGS = [
   {
     tenantId: SEED_TENANTS[0].id,
-    weekStartDay: 'MONDAY' as const,
+    weekStartDay: WeekStartDay.MONDAY,
     dailyPreferences: [
-      {
-        day: 'MONDAY',
-        preferences: { isCreamy: true, isAcidic: false, greenVeg: true, isEasyToMake: true },
-      },
-      {
-        day: 'TUESDAY',
-        preferences: { isCreamy: false, isAcidic: true, greenVeg: true, isEasyToMake: true },
-      },
-      {
-        day: 'WEDNESDAY',
-        preferences: { isCreamy: true, isAcidic: false, greenVeg: false, isEasyToMake: false },
-      },
-      {
-        day: 'THURSDAY',
-        preferences: { isCreamy: true, isAcidic: true, greenVeg: true, isEasyToMake: true },
-      },
-      {
-        day: 'FRIDAY',
-        preferences: { isCreamy: true, isAcidic: true, greenVeg: true, isEasyToMake: false },
-      },
-      {
-        day: 'SATURDAY',
-        preferences: { isCreamy: true, isAcidic: false, greenVeg: true, isEasyToMake: false },
-      },
-      {
-        day: 'SUNDAY',
-        preferences: { isCreamy: true, isAcidic: true, greenVeg: true, isEasyToMake: true },
-      },
+      { day: DayOfWeek.MONDAY, preferences: { isCreamy: true, isAcidic: false, greenVeg: true, isEasyToMake: true } },
+      { day: DayOfWeek.TUESDAY, preferences: { isCreamy: false, isAcidic: true, greenVeg: true, isEasyToMake: true } },
+      { day: DayOfWeek.WEDNESDAY, preferences: { isCreamy: true, isAcidic: false, greenVeg: false, isEasyToMake: false } },
+      { day: DayOfWeek.THURSDAY, preferences: { isCreamy: true, isAcidic: true, greenVeg: true, isEasyToMake: true } },
+      { day: DayOfWeek.FRIDAY, preferences: { isCreamy: true, isAcidic: true, greenVeg: true, isEasyToMake: false } },
+      { day: DayOfWeek.SATURDAY, preferences: { isCreamy: true, isAcidic: false, greenVeg: true, isEasyToMake: false } },
+      { day: DayOfWeek.SUNDAY, preferences: { isCreamy: true, isAcidic: true, greenVeg: true, isEasyToMake: true } },
     ],
   },
   {
     tenantId: SEED_TENANTS[1].id,
-    weekStartDay: 'SUNDAY' as const,
+    weekStartDay: WeekStartDay.SUNDAY,
     dailyPreferences: [
-      {
-        day: 'SUNDAY',
-        preferences: { isCreamy: true, isAcidic: true, greenVeg: true, isEasyToMake: false },
-      },
-      {
-        day: 'MONDAY',
-        preferences: { isCreamy: false, isAcidic: true, greenVeg: false, isEasyToMake: true },
-      },
-      {
-        day: 'TUESDAY',
-        preferences: { isCreamy: true, isAcidic: false, greenVeg: true, isEasyToMake: false },
-      },
-      {
-        day: 'WEDNESDAY',
-        preferences: { isCreamy: false, isAcidic: true, greenVeg: true, isEasyToMake: true },
-      },
-      {
-        day: 'THURSDAY',
-        preferences: { isCreamy: true, isAcidic: false, greenVeg: true, isEasyToMake: false },
-      },
-      {
-        day: 'FRIDAY',
-        preferences: { isCreamy: true, isAcidic: true, greenVeg: true, isEasyToMake: true },
-      },
-      {
-        day: 'SATURDAY',
-        preferences: { isCreamy: true, isAcidic: false, greenVeg: true, isEasyToMake: false },
-      },
+      { day: DayOfWeek.SUNDAY, preferences: { isCreamy: true, isAcidic: true, greenVeg: true, isEasyToMake: false } },
+      { day: DayOfWeek.MONDAY, preferences: { isCreamy: false, isAcidic: true, greenVeg: false, isEasyToMake: true } },
+      { day: DayOfWeek.TUESDAY, preferences: { isCreamy: true, isAcidic: false, greenVeg: true, isEasyToMake: false } },
+      { day: DayOfWeek.WEDNESDAY, preferences: { isCreamy: false, isAcidic: true, greenVeg: true, isEasyToMake: true } },
+      { day: DayOfWeek.THURSDAY, preferences: { isCreamy: true, isAcidic: false, greenVeg: true, isEasyToMake: false } },
+      { day: DayOfWeek.FRIDAY, preferences: { isCreamy: true, isAcidic: true, greenVeg: true, isEasyToMake: true } },
+      { day: DayOfWeek.SATURDAY, preferences: { isCreamy: true, isAcidic: false, greenVeg: true, isEasyToMake: false } },
     ],
   },
 ];
-
-/** getDay() result for each week start day (0=Sun, 1=Mon, ...) */
-const WEEK_START_DAY_INDEX: Record<string, number> = {
-  SUNDAY: 0,
-  MONDAY: 1,
-  TUESDAY: 2,
-  WEDNESDAY: 3,
-  THURSDAY: 4,
-  FRIDAY: 5,
-  SATURDAY: 6,
-};
 
 /**
  * Calculate the next occurrence of the given week start day from a date.
  * Used so each tenant's planned weeks start on their weekStartDay (e.g. Monday vs Sunday).
  *
  * @param fromDate - Reference date (default: today)
- * @param weekStartDay - Day name (e.g. "MONDAY", "SUNDAY")
+ * @param weekStartDay - WeekStartDay enum value
  * @returns Date of the start of the week (same day as weekStartDay, at start of day)
  */
-export function getNextWeekStart(fromDate: Date = new Date(), weekStartDay: string): Date {
+export function getNextWeekStart(
+  fromDate: Date = new Date(),
+  weekStartDay: WeekStartDay
+): Date {
   const date = new Date(fromDate);
   date.setHours(0, 0, 0, 0);
   const current = date.getDay();
   const target = WEEK_START_DAY_INDEX[weekStartDay] ?? 1;
   const daysUntil = (target - current + 7) % 7;
-  // If today is the target day, use today; otherwise advance to next occurrence
   date.setDate(date.getDate() + (daysUntil === 0 ? 0 : daysUntil));
   return date;
 }
 
 /**
  * Calculate next Monday from a given date.
- * Convenience wrapper for getNextWeekStart(fromDate, "MONDAY").
  *
  * @param fromDate - Reference date (default: today)
  * @returns Date of the next Monday (or today if today is Monday)
  */
 export function getNextMonday(fromDate: Date = new Date()): Date {
-  return getNextWeekStart(fromDate, 'MONDAY');
+  return getNextWeekStart(fromDate, WeekStartDay.MONDAY);
 }
 
 /**
- * Get day of week name (e.g. "MONDAY") from a date for Prisma DayOfWeek enum.
- *
- * @param date - Input date
- * @returns Day name string matching DayOfWeekMap
+ * Get day of week from a date (domain DayOfWeek enum).
  */
-export function getDayOfWeek(date: Date): keyof typeof DayOfWeekMap {
-  const days = [
-    'SUNDAY',
-    'MONDAY',
-    'TUESDAY',
-    'WEDNESDAY',
-    'THURSDAY',
-    'FRIDAY',
-    'SATURDAY',
-  ] as const;
-  return days[date.getDay()];
+export function getDayOfWeek(date: Date): DayOfWeek {
+  return DAY_INDEX_TO_DAY_OF_WEEK[date.getDay()];
 }
 
 /**
- * Get short day abbreviation (e.g. "MON") from a date for Prisma ShortDay enum.
- *
- * @param date - Input date
- * @returns Short day string (SUN, MON, TUE, ...)
+ * Get short day abbreviation from a date (domain ShortDay enum).
  */
-export function getShortDay(date: Date): string {
-  const shortDays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-  return shortDays[date.getDay()];
+export function getShortDay(date: Date): ShortDay {
+  return DAY_INDEX_TO_SHORT_DAY[date.getDay()];
 }
-
-/**
- * Day of week mapping for Prisma enum
- */
-export const DayOfWeekMap = {
-  SUNDAY: 'SUNDAY',
-  MONDAY: 'MONDAY',
-  TUESDAY: 'TUESDAY',
-  WEDNESDAY: 'WEDNESDAY',
-  THURSDAY: 'THURSDAY',
-  FRIDAY: 'FRIDAY',
-  SATURDAY: 'SATURDAY',
-} as const;
-
-/**
- * Short day mapping for Prisma enum
- */
-export const ShortDayMap = {
-  SUN: 'SUN',
-  MON: 'MON',
-  TUE: 'TUE',
-  WED: 'WED',
-  THU: 'THU',
-  FRI: 'FRI',
-  SAT: 'SAT',
-} as const;

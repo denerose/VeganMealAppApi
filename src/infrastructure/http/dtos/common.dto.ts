@@ -27,3 +27,8 @@ export const createErrorBody = (
     details,
   },
 });
+
+/** Extract a string message from an unknown error (e.g. in catch blocks). */
+export function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}

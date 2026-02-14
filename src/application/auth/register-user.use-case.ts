@@ -1,9 +1,10 @@
-import type { PrismaClient } from '@prisma/client';
-import { BcryptPasswordHasher } from '@/infrastructure/auth/password/bcrypt-password-hasher';
-import { JWTGenerator } from '@/infrastructure/auth/jwt/jwt-generator';
-import { PasswordValidator } from '@/infrastructure/auth/password/password-validator';
+import type { AuthRepository } from '@/domain/auth/auth.repository';
+import type { PasswordHasher } from '@/domain/auth/password-hasher.interface';
+import type { TokenGenerator } from '@/domain/auth/token-generator.interface';
+import type { UserRepository } from '@/domain/user/user.repository';
 import { EmailValidator } from '@/infrastructure/auth/email/email-validator';
 import { NicknameValidator } from '@/infrastructure/auth/profile/nickname-validator';
+import { PasswordValidator } from '@/infrastructure/auth/password/password-validator';
 
 export type RegisterUserRequest = {
   email: string;
@@ -33,20 +34,13 @@ export type RegisterUserResponse = {
  */
 export class RegisterUserUseCase {
   constructor(
-    private prisma: PrismaClient,
-    private passwordHasher: BcryptPasswordHasher,
-    private jwtGenerator: JWTGenerator
+    private readonly userRepository: UserRepository,
+    private readonly authRepository: AuthRepository,
+    private readonly passwordHasher: PasswordHasher,
+    private readonly tokenGenerator: TokenGenerator
   ) {}
 
-  /**
-   * Registers a new user with email, password, nickname, and tenant name.
-   * @param request - Registration request containing email, password, nickname, and tenantName
-   * @returns Registration response with JWT token and user information
-   * @throws Error if validation fails, email already exists, or tenant creation fails
-   */
-
   async execute(request: RegisterUserRequest): Promise<RegisterUserResponse> {
-    // T025-T027: Validate input
     const emailValidation = EmailValidator.validate(request.email);
     if (!emailValidation.isValid) {
       throw new Error(emailValidation.error);
@@ -70,38 +64,21 @@ export class RegisterUserUseCase {
       throw new Error('Tenant name must be 100 characters or less');
     }
 
-    // Check for duplicate email
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email: request.email },
-    });
-
+    const existingUser = await this.userRepository.findByEmail(request.email);
     if (existingUser) {
       throw new Error('Email already registered');
     }
 
-    // T028: Create tenant
-    const tenant = await this.prisma.tenant.create({
-      data: {
-        name: request.tenantName,
-      },
-    });
-
-    // T029: Implement password hashing using BcryptPasswordHasher
     const passwordHash = await this.passwordHasher.hash(request.password);
 
-    // Create user with hashed password and assign as tenant admin
-    const user = await this.prisma.user.create({
-      data: {
-        email: request.email,
-        nickname: request.nickname,
-        passwordHash,
-        tenantId: tenant.id,
-        isTenantAdmin: true,
-      },
+    const { tenant, user } = await this.authRepository.createTenantAndUser({
+      tenantName: request.tenantName,
+      email: request.email,
+      nickname: request.nickname,
+      passwordHash,
     });
 
-    // T030: Implement JWT token generation using JWTGenerator (include userId, tenantId, email)
-    const token = await this.jwtGenerator.generate({
+    const token = await this.tokenGenerator.generate({
       userId: user.id,
       tenantId: tenant.id,
       email: user.email,

@@ -4,8 +4,8 @@ import type { UserSettings } from '@/domain/user/user-settings.entity';
 
 export class GetUserSettingsUseCase {
   constructor(
-    private userSettingsRepository: UserSettingsRepository,
-    private userRepository: UserRepository
+    private readonly userSettingsRepository: UserSettingsRepository,
+    private readonly userRepository: UserRepository
   ) {}
 
   async execute(userId: string, tenantId: string): Promise<UserSettings> {

@@ -27,7 +27,7 @@ describe('PrismaPlannedWeekRepository', () => {
     await prisma.userSettings.create({
       data: {
         tenantId: testTenantId,
-        weekStartDay: 'MONDAY',
+        weekStartDay: WeekStartDay.MONDAY,
         dailyPreferences: [],
       },
     });
@@ -258,7 +258,7 @@ describe('PrismaPlannedWeekRepository', () => {
       await prisma.userSettings.create({
         data: {
           tenantId: tenant2.id,
-          weekStartDay: 'MONDAY',
+          weekStartDay: WeekStartDay.MONDAY,
           dailyPreferences: [],
         },
       });

@@ -1,8 +1,16 @@
 import type { PrismaClient, User as PrismaUser } from '@prisma/client';
-import type { User, UserId, UserRepository } from '@/domain/user/user.repository';
+import type { Tenant, User, UserId, UserRepository } from '@/domain/user/user.repository';
 
 export class PrismaUserRepository implements UserRepository {
   constructor(private prisma: PrismaClient) {}
+
+  async findTenantById(tenantId: string): Promise<Tenant | null> {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { id: true, name: true },
+    });
+    return tenant;
+  }
 
   async findById(id: UserId, tenantId: string): Promise<User | null> {
     const user = await this.prisma.user.findFirst({
@@ -88,6 +96,23 @@ export class PrismaUserRepository implements UserRepository {
       where: { id: userId },
       data: { passwordHash },
     });
+  }
+
+  async updateNickname(userId: UserId, tenantId: string, nickname: string): Promise<User> {
+    const user = await this.prisma.user.updateMany({
+      where: { id: userId, tenantId },
+      data: { nickname },
+    });
+    if (user.count === 0) {
+      throw new Error('User not found');
+    }
+    const updated = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!updated) {
+      throw new Error('User not found');
+    }
+    return this.mapToUser(updated);
   }
 
   private mapToUser(dbUser: PrismaUser): User {

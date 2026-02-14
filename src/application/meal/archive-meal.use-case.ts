@@ -1,5 +1,5 @@
-import type { MealId, MealSnapshot } from '../../domain/meal/meal.entity';
-import type { MealRepository } from '../../domain/meal/meal.repository';
+import type { MealId, MealSnapshot } from '@/domain/meal/meal.entity';
+import type { MealRepository } from '@/domain/meal/meal.repository';
 
 export type ArchiveMealRequest = {
   id: MealId;
@@ -7,7 +7,7 @@ export type ArchiveMealRequest = {
 };
 
 export class ArchiveMealUseCase {
-  constructor(private mealRepository: MealRepository) {}
+  constructor(private readonly mealRepository: MealRepository) {}
 
   async execute(request: ArchiveMealRequest): Promise<MealSnapshot> {
     const meal = await this.mealRepository.findById(request.id, request.tenantId);

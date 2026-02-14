@@ -1,5 +1,6 @@
 import type { PrismaClient } from '@prisma/client';
-import type { AuthRepository } from '@/domain/auth/auth.repository';
+import type { AuthRepository, CreateTenantAndUserParams } from '@/domain/auth/auth.repository';
+import type { User } from '@/domain/user/user.repository';
 import type { PasswordResetToken } from '@/domain/auth/password-reset-token.entity';
 import { createPasswordResetToken, isTokenValid } from '@/domain/auth/password-reset-token.entity';
 
@@ -9,6 +10,35 @@ import { createPasswordResetToken, isTokenValid } from '@/domain/auth/password-r
  */
 export class PrismaAuthRepository implements AuthRepository {
   constructor(private prisma: PrismaClient) {}
+
+  async createTenantAndUser(
+    params: CreateTenantAndUserParams
+  ): Promise<{ tenant: { id: string; name: string }; user: User }> {
+    const tenant = await this.prisma.tenant.create({
+      data: { name: params.tenantName },
+    });
+    const user = await this.prisma.user.create({
+      data: {
+        email: params.email,
+        nickname: params.nickname,
+        passwordHash: params.passwordHash,
+        tenantId: tenant.id,
+        isTenantAdmin: true,
+      },
+    });
+    return {
+      tenant: { id: tenant.id, name: tenant.name },
+      user: {
+        id: user.id,
+        email: user.email,
+        nickname: user.nickname,
+        isTenantAdmin: user.isTenantAdmin,
+        tenantId: user.tenantId,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
+    };
+  }
 
   async createPasswordResetToken(
     userId: string,

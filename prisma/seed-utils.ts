@@ -14,6 +14,7 @@
 
 import { v5 as uuidv5 } from 'uuid';
 import type { PrismaClient } from '@prisma/client';
+import { WeekStartDay } from '../src/domain/shared/week-start-day.enum';
 import {
   SEED_TENANTS,
   SEED_INGREDIENTS,
@@ -301,7 +302,7 @@ export async function seedDatabase(prisma: PrismaClient): Promise<SeedResult> {
       logVerbose(`Creating planned weeks for tenant ${tenant.id}...`);
 
       // Week 1 start respects tenant's weekStartDay (e.g. Monday for T1, Sunday for T2)
-      const weekStartDay = settingsData?.weekStartDay ?? 'MONDAY';
+      const weekStartDay = settingsData?.weekStartDay ?? WeekStartDay.MONDAY;
       const week1Start = getNextWeekStart(new Date(), weekStartDay);
 
       // Get meals for this tenant with qualities (for lunch vs dinner slot assignment)
@@ -360,8 +361,8 @@ export async function seedDatabase(prisma: PrismaClient): Promise<SeedResult> {
             data: {
               id: deterministicUuid(`${tenant.id}-day-${weekNum}-${dayNum}`),
               date: dayDate,
-              longDay: getDayOfWeek(dayDate) as 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY',
-              shortDay: getShortDay(dayDate) as 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT' | 'SUN',
+              longDay: getDayOfWeek(dayDate),
+              shortDay: getShortDay(dayDate),
               plannedWeekId: plannedWeek.id,
               lunchMealId,
               dinnerMealId,

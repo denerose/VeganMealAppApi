@@ -1,18 +1,15 @@
-import type { GetUserSettingsUseCase } from '@/application/use-cases/get-user-settings.use-case';
-import type {
-  UpdateUserSettingsParams,
-  UpdateUserSettingsUseCase,
-} from '@/application/use-cases/update-user-settings.use-case';
-import type { UpdateUserSettingsDto } from '../dtos/user-settings.dto';
+import type { GetUserSettingsUseCase } from '@/application/user-settings/get-user-settings.use-case';
+import type { UpdateUserSettingsUseCase } from '@/application/user-settings/update-user-settings.use-case';
 import { toUserSettingsDto } from '../dtos/user-settings.dto';
 import { validateUpdateUserSettingsDto } from '../validators/user-settings.validator';
-import { createErrorBody } from '../dtos/common.dto';
+import { createErrorBody, errorMessage } from '../dtos/common.dto';
+import { jsonResponse } from '../response.utils';
 import type { RouteContext } from '../routes';
 
 export class UserSettingsController {
   constructor(
-    private getUserSettingsUseCase: GetUserSettingsUseCase,
-    private updateUserSettingsUseCase: UpdateUserSettingsUseCase
+    private readonly getUserSettingsUseCase: GetUserSettingsUseCase,
+    private readonly updateUserSettingsUseCase: UpdateUserSettingsUseCase
   ) {}
 
   async getUserSettings(context: RouteContext): Promise<Response> {
@@ -23,35 +20,21 @@ export class UserSettingsController {
       const tenantId: string = context.params.tenantId ?? 'mock-tenant-id';
 
       if (!userId || !tenantId) {
-        return new Response(JSON.stringify(createErrorBody('Unauthorized')), {
-          status: 401,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse(createErrorBody('Unauthorized'), 401);
       }
 
       const settings = await this.getUserSettingsUseCase.execute(userId, tenantId);
       const dto = toUserSettingsDto(settings);
 
-      return new Response(JSON.stringify(dto), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(dto);
     } catch (error) {
       console.error('Error getting user settings:', error);
 
-      if (error instanceof Error) {
-        if (error.message === 'User not found') {
-          return new Response(JSON.stringify(createErrorBody(error.message)), {
-            status: 404,
-            headers: { 'Content-Type': 'application/json' },
-          });
-        }
+      if (errorMessage(error) === 'User not found') {
+        return jsonResponse(createErrorBody(errorMessage(error)), 404);
       }
 
-      return new Response(JSON.stringify(createErrorBody('Internal server error')), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(createErrorBody('Internal server error'), 500);
     }
   }
 
@@ -70,51 +53,32 @@ export class UserSettingsController {
 
       // Validate request body
       const body = (await context.request.json()) as unknown;
-      const updateParams = validateUpdateUserSettingsDto(body) as UpdateUserSettingsDto;
+      const updateParams = validateUpdateUserSettingsDto(body);
 
-      const settings = await this.updateUserSettingsUseCase.execute(
-        userId,
-        tenantId,
-        updateParams as UpdateUserSettingsParams
-      );
+      const settings = await this.updateUserSettingsUseCase.execute(userId, tenantId, updateParams);
 
       /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- toUserSettingsDto returns UserSettingsDto */
       const dto = toUserSettingsDto(settings);
 
-      return new Response(JSON.stringify(dto), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(dto);
     } catch (error) {
       console.error('Error updating user settings:', error);
 
-      if (error instanceof Error) {
-        if (error.message === 'Only tenant administrators can update user settings') {
-          return new Response(JSON.stringify(createErrorBody(error.message)), {
-            status: 403,
-            headers: { 'Content-Type': 'application/json' },
-          });
-        }
-
-        // Validation errors
-        if (
-          error.message.includes('must be') ||
-          error.message.includes('Invalid') ||
-          error.message.includes('Missing') ||
-          error.message.includes('Duplicate') ||
-          error.message.includes('At least one field')
-        ) {
-          return new Response(JSON.stringify(createErrorBody(error.message)), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          });
-        }
+      const msg = errorMessage(error);
+      if (msg === 'Only tenant administrators can update user settings') {
+        return jsonResponse(createErrorBody(msg), 403);
+      }
+      if (
+        msg.includes('must be') ||
+        msg.includes('Invalid') ||
+        msg.includes('Missing') ||
+        msg.includes('Duplicate') ||
+        msg.includes('At least one field')
+      ) {
+        return jsonResponse(createErrorBody(msg), 400);
       }
 
-      return new Response(JSON.stringify(createErrorBody('Internal server error')), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(createErrorBody('Internal server error'), 500);
     }
   }
 }

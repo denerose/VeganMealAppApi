@@ -1,5 +1,5 @@
-import type { IngredientId } from '../../domain/ingredient/ingredient.entity';
-import type { IngredientRepository } from '../../domain/ingredient/ingredient.repository';
+import type { IngredientId } from '@/domain/ingredient/ingredient.entity';
+import type { IngredientRepository } from '@/domain/ingredient/ingredient.repository';
 
 export type DeleteIngredientRequest = {
   id: IngredientId;
@@ -7,7 +7,7 @@ export type DeleteIngredientRequest = {
 };
 
 export class DeleteIngredientUseCase {
-  constructor(private ingredientRepository: IngredientRepository) {}
+  constructor(private readonly ingredientRepository: IngredientRepository) {}
 
   async execute(request: DeleteIngredientRequest): Promise<void> {
     const ingredient = await this.ingredientRepository.findById(request.id, request.tenantId);

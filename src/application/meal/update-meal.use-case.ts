@@ -1,7 +1,7 @@
-import type { MealId, MealSnapshot } from '../../domain/meal/meal.entity';
-import type { MealRepository } from '../../domain/meal/meal.repository';
-import type { MealQualitiesProps } from '../../domain/meal/meal-qualities.vo';
-import type { IngredientId } from '../../domain/ingredient/ingredient.entity';
+import type { MealId, MealSnapshot } from '@/domain/meal/meal.entity';
+import type { MealRepository } from '@/domain/meal/meal.repository';
+import type { MealQualitiesProps } from '@/domain/meal/meal-qualities.vo';
+import type { IngredientId } from '@/domain/ingredient/ingredient.entity';
 
 export type UpdateMealRequest = {
   id: MealId;
@@ -12,7 +12,7 @@ export type UpdateMealRequest = {
 };
 
 export class UpdateMealUseCase {
-  constructor(private mealRepository: MealRepository) {}
+  constructor(private readonly mealRepository: MealRepository) {}
 
   async execute(request: UpdateMealRequest): Promise<MealSnapshot> {
     const meal = await this.mealRepository.findById(request.id, request.tenantId);

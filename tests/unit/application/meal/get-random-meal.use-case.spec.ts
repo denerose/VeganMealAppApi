@@ -1,45 +1,46 @@
 import { describe, expect, it } from 'bun:test';
 
-import { GetRandomMealUseCase } from '@/application/meal/get-random-meal.usecase';
-import {
-  GetEligibleMealsUseCase,
-  MealFilter,
+import { GetEligibleMealsUseCase } from '@/application/meal/get-eligible-meals.use-case';
+import { GetRandomMealUseCase } from '@/application/meal/get-random-meal.use-case';
+import type {
+  MealQualitiesFilter,
   MealRepository,
-  UserSettings,
-  UserSettingsRepository,
-} from '@/application/meal/get-eligible-meals.usecase';
-import type { MealSummary } from '@/domain/meal/meal.repository';
-import { DayOfWeek } from '@/domain/shared/day-of-week.enum';
+  MealSummary,
+} from '@/domain/meal/meal.repository';
+import type { UserSettingsRepository } from '@/domain/user/user-settings.repository';
+import { UserSettings } from '@/domain/user/user-settings.entity';
+import type { UserSettingsRepository } from '@/domain/user/user-settings.repository';
+import { DAY_OF_WEEK_VALUES } from '@/domain/shared/day-of-week.enum';
+import { MealSlot } from '@/domain/shared/meal-slot.enum';
+import { WeekStartDay } from '@/domain/shared/week-start-day.enum';
 
-class InMemoryMealRepository implements MealRepository {
+class InMemoryMealRepository {
   constructor(private readonly meals: MealSummary[]) {}
 
-  findByQualities(_tenantId: string, _filter: MealFilter): Promise<MealSummary[]> {
+  findByQualities(_tenantId: string, _filter: MealQualitiesFilter): Promise<MealSummary[]> {
     return Promise.resolve(this.meals);
   }
 }
 
-class InMemoryUserSettingsRepository implements UserSettingsRepository {
+class InMemoryUserSettingsRepository {
   constructor(private readonly settings: UserSettings | null) {}
 
-  findByTenantId(): Promise<UserSettings | null> {
+  async findByTenantId(): Promise<UserSettings | null> {
     return Promise.resolve(this.settings);
   }
 }
 
-const defaultSettings: UserSettings = {
+const defaultSettings = UserSettings.rehydrate({
   id: 'settings-1',
   tenantId: 'tenant-1',
-  weekStartDay: DayOfWeek.MONDAY,
-  dailyPreferences: [
-    {
-      day: DayOfWeek.MONDAY,
-      preferences: {
-        isEasyToMake: true,
-      },
-    },
-  ],
-};
+  weekStartDay: WeekStartDay.MONDAY,
+  dailyPreferences: DAY_OF_WEEK_VALUES.map(day => ({
+    day,
+    preferences: {},
+  })),
+  createdAt: new Date(),
+  updatedAt: new Date(),
+});
 
 const createMealSummary = (id: string, name: string): MealSummary => ({
   id,
@@ -60,13 +61,16 @@ describe('GetRandomMealUseCase', () => {
   it('returns null when no eligible meals are available', async () => {
     const mealRepo = new InMemoryMealRepository([]);
     const settingsRepo = new InMemoryUserSettingsRepository(defaultSettings);
-    const eligibleMealsUseCase = new GetEligibleMealsUseCase(mealRepo, settingsRepo);
+    const eligibleMealsUseCase = new GetEligibleMealsUseCase(
+      mealRepo as MealRepository,
+      settingsRepo as UserSettingsRepository
+    );
     const useCase = new GetRandomMealUseCase(eligibleMealsUseCase);
 
     const result = await useCase.execute({
       tenantId: 'tenant-1',
       date: '2025-01-06',
-      mealType: 'lunch',
+      mealType: MealSlot.LUNCH,
     });
 
     expect(result).toBeNull();
@@ -76,13 +80,16 @@ describe('GetRandomMealUseCase', () => {
     const meal: MealSummary = createMealSummary('meal-1', 'Single Meal');
     const mealRepo = new InMemoryMealRepository([meal]);
     const settingsRepo = new InMemoryUserSettingsRepository(defaultSettings);
-    const eligibleMealsUseCase = new GetEligibleMealsUseCase(mealRepo, settingsRepo);
+    const eligibleMealsUseCase = new GetEligibleMealsUseCase(
+      mealRepo as MealRepository,
+      settingsRepo as UserSettingsRepository
+    );
     const useCase = new GetRandomMealUseCase(eligibleMealsUseCase);
 
     const result: MealSummary | null = await useCase.execute({
       tenantId: 'tenant-1',
       date: '2025-01-06',
-      mealType: 'lunch',
+      mealType: MealSlot.LUNCH,
     });
 
     expect(result).not.toBeNull();
@@ -97,13 +104,16 @@ describe('GetRandomMealUseCase', () => {
     ];
     const mealRepo = new InMemoryMealRepository(meals);
     const settingsRepo = new InMemoryUserSettingsRepository(defaultSettings);
-    const eligibleMealsUseCase = new GetEligibleMealsUseCase(mealRepo, settingsRepo);
+    const eligibleMealsUseCase = new GetEligibleMealsUseCase(
+      mealRepo as MealRepository,
+      settingsRepo as UserSettingsRepository
+    );
     const useCase = new GetRandomMealUseCase(eligibleMealsUseCase);
 
     const result: MealSummary | null = await useCase.execute({
       tenantId: 'tenant-1',
       date: '2025-01-06',
-      mealType: 'lunch',
+      mealType: MealSlot.LUNCH,
     });
 
     expect(result).toBeDefined();
@@ -122,7 +132,10 @@ describe('GetRandomMealUseCase', () => {
     ];
     const mealRepo = new InMemoryMealRepository(meals);
     const settingsRepo = new InMemoryUserSettingsRepository(defaultSettings);
-    const eligibleMealsUseCase = new GetEligibleMealsUseCase(mealRepo, settingsRepo);
+    const eligibleMealsUseCase = new GetEligibleMealsUseCase(
+      mealRepo as MealRepository,
+      settingsRepo as UserSettingsRepository
+    );
     const useCase = new GetRandomMealUseCase(eligibleMealsUseCase);
 
     const results = new Set<string>();
@@ -130,7 +143,7 @@ describe('GetRandomMealUseCase', () => {
       const result: MealSummary | null = await useCase.execute({
         tenantId: 'tenant-1',
         date: '2025-01-06',
-        mealType: 'lunch',
+        mealType: MealSlot.LUNCH,
       });
       if (result) {
         results.add(result.id);
@@ -145,14 +158,17 @@ describe('GetRandomMealUseCase', () => {
     const meal = createMealSummary('meal-1', 'Single Meal');
     const mealRepo = new InMemoryMealRepository([meal]);
     const settingsRepo = new InMemoryUserSettingsRepository(null);
-    const eligibleMealsUseCase = new GetEligibleMealsUseCase(mealRepo, settingsRepo);
+    const eligibleMealsUseCase = new GetEligibleMealsUseCase(
+      mealRepo as MealRepository,
+      settingsRepo as UserSettingsRepository
+    );
     const useCase = new GetRandomMealUseCase(eligibleMealsUseCase);
 
     return expect(
       useCase.execute({
         tenantId: 'tenant-1',
         date: '2025-01-06',
-        mealType: 'lunch',
+        mealType: MealSlot.LUNCH,
       })
     ).rejects.toThrow('user settings not found');
   });
@@ -161,14 +177,17 @@ describe('GetRandomMealUseCase', () => {
     const meal = createMealSummary('meal-1', 'Single Meal');
     const mealRepo = new InMemoryMealRepository([meal]);
     const settingsRepo = new InMemoryUserSettingsRepository(defaultSettings);
-    const eligibleMealsUseCase = new GetEligibleMealsUseCase(mealRepo, settingsRepo);
+    const eligibleMealsUseCase = new GetEligibleMealsUseCase(
+      mealRepo as MealRepository,
+      settingsRepo as UserSettingsRepository
+    );
     const useCase = new GetRandomMealUseCase(eligibleMealsUseCase);
 
     return expect(
       useCase.execute({
         tenantId: 'tenant-1',
         date: 'invalid-date',
-        mealType: 'lunch',
+        mealType: MealSlot.LUNCH,
       })
     ).rejects.toThrow('invalid date supplied');
   });

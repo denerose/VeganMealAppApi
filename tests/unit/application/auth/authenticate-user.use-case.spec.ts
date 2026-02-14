@@ -1,23 +1,20 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test';
-import type { PrismaClient } from '@prisma/client';
 import { AuthenticateUserUseCase } from '@/application/auth/authenticate-user.use-case';
+import type { PasswordHasher } from '@/domain/auth/password-hasher.interface';
+import type { TokenGenerator } from '@/domain/auth/token-generator.interface';
 import type { UserRepository } from '@/domain/user/user.repository';
-import { BcryptPasswordHasher } from '@/infrastructure/auth/password/bcrypt-password-hasher';
-import { JWTGenerator } from '@/infrastructure/auth/jwt/jwt-generator';
 
 describe('AuthenticateUserUseCase', () => {
   let useCase: AuthenticateUserUseCase;
-  let mockPrisma: PrismaClient;
   let mockUserRepository: UserRepository;
-  let mockPasswordHasher: BcryptPasswordHasher;
-  let mockJwtGenerator: JWTGenerator;
+  let mockPasswordHasher: PasswordHasher;
+  let mockJwtGenerator: TokenGenerator;
   let mockFindByEmailWithPassword: ReturnType<typeof mock>;
+  let mockFindTenantById: ReturnType<typeof mock>;
   let mockCompare: ReturnType<typeof mock>;
   let mockGenerate: ReturnType<typeof mock>;
-  let mockTenantFindUnique: ReturnType<typeof mock>;
 
   beforeEach(() => {
-    // Create mock functions
     mockFindByEmailWithPassword = mock(() =>
       Promise.resolve({
         user: {
@@ -32,45 +29,24 @@ describe('AuthenticateUserUseCase', () => {
         passwordHash: 'hashed-password',
       })
     );
+    mockFindTenantById = mock(() => Promise.resolve({ id: 'tenant-123', name: 'Test Tenant' }));
     mockCompare = mock(() => Promise.resolve(true));
     mockGenerate = mock(() => Promise.resolve('jwt-token-123'));
-    mockTenantFindUnique = mock(() =>
-      Promise.resolve({
-        id: 'tenant-123',
-        name: 'Test Tenant',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-    );
 
-    // Mock PrismaClient
-    mockPrisma = {
-      tenant: {
-        findUnique: mockTenantFindUnique,
-      },
-    } as unknown as PrismaClient;
-
-    // Mock UserRepository
     mockUserRepository = {
       findByEmailWithPassword: mockFindByEmailWithPassword,
+      findTenantById: mockFindTenantById,
     } as unknown as UserRepository;
 
-    // Mock BcryptPasswordHasher
     mockPasswordHasher = {
       compare: mockCompare,
-    } as unknown as BcryptPasswordHasher;
+    } as unknown as PasswordHasher;
 
-    // Mock JWTGenerator
     mockJwtGenerator = {
       generate: mockGenerate,
-    } as unknown as JWTGenerator;
+    } as unknown as TokenGenerator;
 
-    useCase = new AuthenticateUserUseCase(
-      mockPrisma,
-      mockUserRepository,
-      mockPasswordHasher,
-      mockJwtGenerator
-    );
+    useCase = new AuthenticateUserUseCase(mockUserRepository, mockPasswordHasher, mockJwtGenerator);
   });
 
   it('should authenticate user with valid credentials', async () => {
@@ -98,10 +74,8 @@ describe('AuthenticateUserUseCase', () => {
     expect(mockCompare).toHaveBeenCalledWith('password123', 'hashed-password');
 
     // Verify tenant was looked up
-    expect(mockTenantFindUnique).toHaveBeenCalledTimes(1);
-    expect(mockTenantFindUnique).toHaveBeenCalledWith({
-      where: { id: 'tenant-123' },
-    });
+    expect(mockFindTenantById).toHaveBeenCalledTimes(1);
+    expect(mockFindTenantById).toHaveBeenCalledWith('tenant-123');
 
     // Verify JWT token was generated
     expect(mockGenerate).toHaveBeenCalledTimes(1);
@@ -157,7 +131,7 @@ describe('AuthenticateUserUseCase', () => {
   });
 
   it('should throw generic error when tenant not found', () => {
-    mockTenantFindUnique.mockResolvedValueOnce(null);
+    mockFindTenantById.mockResolvedValueOnce(null);
 
     const request = {
       email: 'test@example.com',

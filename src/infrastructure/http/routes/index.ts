@@ -39,13 +39,7 @@ type RouteDefinition = {
   handler: RouteHandler;
 };
 
-const jsonResponse = (body: unknown, status = 200): Response =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
+import { jsonResponse } from '../response.utils';
 
 export class AppRouter {
   private readonly routes: RouteDefinition[] = [];
@@ -135,19 +129,16 @@ export const registerRoutes = (router: AppRouter, controllers: RouteControllers)
   if (controllers.auth) {
     const auth = controllers.auth;
     router.post(`${prefix}/auth/register`, ctx => auth.register(ctx));
-    // T050: Add POST /auth/login route with rate limiting middleware
     router.post(
       `${prefix}/auth/login`,
       composeMiddleware(createRateLimitMiddleware('login'))(ctx => auth.login(ctx))
     );
-    // T075: Add POST /auth/password/reset/request route with rate limiting middleware
     router.post(
       `${prefix}/auth/password/reset/request`,
       composeMiddleware(createRateLimitMiddleware('passwordReset'))(ctx =>
         auth.requestPasswordReset(ctx)
       )
     );
-    // T076: Add POST /auth/password/reset route
     router.post(`${prefix}/auth/password/reset`, ctx => auth.resetPassword(ctx));
   }
 
@@ -157,7 +148,6 @@ export const registerRoutes = (router: AppRouter, controllers: RouteControllers)
   // Password Management (protected endpoints)
   if (controllers.auth) {
     const auth = controllers.auth;
-    // T074: Add POST /auth/password/change route (protected endpoint)
     router.post(
       `${prefix}/auth/password/change`,
       withAuth(ctx => auth.changePassword(ctx))
@@ -167,12 +157,10 @@ export const registerRoutes = (router: AppRouter, controllers: RouteControllers)
   // User Profile (protected endpoints)
   if (controllers.auth) {
     const auth = controllers.auth;
-    // T090: Add GET /auth/profile route (protected endpoint)
     router.get(
       `${prefix}/auth/profile`,
       withAuth(ctx => auth.getProfile(ctx))
     );
-    // T091: Add PATCH /auth/profile route (protected endpoint)
     router.patch(
       `${prefix}/auth/profile`,
       withAuth(ctx => auth.updateProfile(ctx))

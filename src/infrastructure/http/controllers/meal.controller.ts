@@ -1,24 +1,21 @@
-import type { GetEligibleMealsUseCase } from '@/application/meal/get-eligible-meals.usecase';
-import type { GetRandomMealUseCase } from '@/application/meal/get-random-meal.usecase';
-import type { MealSlot } from '@/domain/planned-week/planned-week.entity';
-import { createErrorBody } from '@/infrastructure/http/dtos/common.dto';
+import type { GetEligibleMealsUseCase } from '@/application/meal/get-eligible-meals.use-case';
+import type { GetRandomMealUseCase } from '@/application/meal/get-random-meal.use-case';
+import { MealSlot, MEAL_SLOT_VALUES } from '@/domain/shared/meal-slot.enum';
+import { createErrorBody, errorMessage } from '@/infrastructure/http/dtos/common.dto';
+import { jsonResponse } from '@/infrastructure/http/response.utils';
 import type { RouteContext } from '@/infrastructure/http/routes';
 import type { MealSummaryDto } from '@/infrastructure/http/dtos/planned-week.dto';
-import { CreateMealUseCase } from '@/application/use-cases/create-meal.use-case';
-import { GetMealUseCase } from '@/application/use-cases/get-meal.use-case';
-import { ListMealsUseCase } from '@/application/use-cases/list-meals.use-case';
-import { UpdateMealUseCase } from '@/application/use-cases/update-meal.use-case';
-import { ArchiveMealUseCase } from '@/application/use-cases/archive-meal.use-case';
+import { CreateMealUseCase } from '@/application/meal/create-meal.use-case';
+import { GetMealUseCase } from '@/application/meal/get-meal.use-case';
+import { ListMealsUseCase } from '@/application/meal/list-meals.use-case';
+import { UpdateMealUseCase } from '@/application/meal/update-meal.use-case';
+import { ArchiveMealUseCase } from '@/application/meal/archive-meal.use-case';
 import type { MealFilters } from '@/domain/meal/meal.repository';
 import {
   validateCreateMealRequest,
   validateUpdateMealRequest,
   toMealResponseDto,
 } from '../dtos/meal.dto';
-
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
 
 export class MealController {
   constructor(
@@ -38,32 +35,23 @@ export class MealController {
       const mealType = url.searchParams.get('mealType');
 
       if (!date) {
-        return new Response(
-          JSON.stringify(createErrorBody('date query parameter is required (YYYY-MM-DD format)')),
-          {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          }
+        return jsonResponse(
+          createErrorBody('date query parameter is required (YYYY-MM-DD format)'),
+          400
         );
       }
 
-      if (!mealType || (mealType !== 'lunch' && mealType !== 'dinner')) {
-        return new Response(
-          JSON.stringify(createErrorBody('mealType query parameter must be "lunch" or "dinner"')),
-          {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          }
+      if (!mealType || !MEAL_SLOT_VALUES.includes(mealType as MealSlot)) {
+        return jsonResponse(
+          createErrorBody('mealType query parameter must be "lunch" or "dinner"'),
+          400
         );
       }
 
       // Validate date format
       const datePattern = /^\d{4}-\d{2}-\d{2}$/;
       if (!datePattern.test(date)) {
-        return new Response(JSON.stringify(createErrorBody('date must be in YYYY-MM-DD format')), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse(createErrorBody('date must be in YYYY-MM-DD format'), 400);
       }
 
       // TODO: Extract tenantId from auth context
@@ -83,33 +71,18 @@ export class MealController {
         isArchived: false,
       }));
 
-      return new Response(JSON.stringify({ data: response }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse({ data: response });
     } catch (error) {
-      if (error instanceof Error && error.message.includes('invalid date')) {
-        return new Response(JSON.stringify(createErrorBody('Invalid date provided')), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        });
+      if (errorMessage(error).includes('invalid date')) {
+        return jsonResponse(createErrorBody('Invalid date provided'), 400);
       }
 
-      if (error instanceof Error && error.message.includes('settings not found')) {
-        return new Response(
-          JSON.stringify(createErrorBody('User settings not configured for this tenant')),
-          {
-            status: 404,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
+      if (errorMessage(error).includes('settings not found')) {
+        return jsonResponse(createErrorBody('User settings not configured for this tenant'), 404);
       }
 
       console.error('Error fetching eligible meals:', error);
-      return new Response(JSON.stringify(createErrorBody('Internal server error')), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(createErrorBody('Internal server error'), 500);
     }
   }
 
@@ -117,32 +90,20 @@ export class MealController {
     try {
       const id = context.params.id ?? undefined;
       if (!id) {
-        return new Response(JSON.stringify(createErrorBody('Meal ID is required')), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse(createErrorBody('Meal ID is required'), 400);
       }
 
       const tenantId = context.request.headers.get('x-tenant-id') || 'temp-tenant-id';
 
       const snapshot = await this.getMealUseCase.execute({ id, tenantId });
 
-      return new Response(JSON.stringify(toMealResponseDto(snapshot)), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(toMealResponseDto(snapshot));
     } catch (error: unknown) {
       if (errorMessage(error).includes('not found')) {
-        return new Response(JSON.stringify(createErrorBody(errorMessage(error))), {
-          status: 404,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse(createErrorBody(errorMessage(error)), 404);
       }
       console.error('Error fetching meal:', error);
-      return new Response(JSON.stringify(createErrorBody('Internal server error')), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(createErrorBody('Internal server error'), 500);
     }
   }
 
@@ -153,32 +114,23 @@ export class MealController {
       const mealType = url.searchParams.get('mealType');
 
       if (!date) {
-        return new Response(
-          JSON.stringify(createErrorBody('date query parameter is required (YYYY-MM-DD format)')),
-          {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          }
+        return jsonResponse(
+          createErrorBody('date query parameter is required (YYYY-MM-DD format)'),
+          400
         );
       }
 
-      if (!mealType || (mealType !== 'lunch' && mealType !== 'dinner')) {
-        return new Response(
-          JSON.stringify(createErrorBody('mealType query parameter must be "lunch" or "dinner"')),
-          {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          }
+      if (!mealType || !MEAL_SLOT_VALUES.includes(mealType as MealSlot)) {
+        return jsonResponse(
+          createErrorBody('mealType query parameter must be "lunch" or "dinner"'),
+          400
         );
       }
 
       // Validate date format
       const datePattern = /^\d{4}-\d{2}-\d{2}$/;
       if (!datePattern.test(date)) {
-        return new Response(JSON.stringify(createErrorBody('date must be in YYYY-MM-DD format')), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse(createErrorBody('date must be in YYYY-MM-DD format'), 400);
       }
 
       // TODO: Extract tenantId from auth context
@@ -191,10 +143,7 @@ export class MealController {
       });
 
       if (!meal) {
-        return new Response(JSON.stringify({ data: null }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse({ data: null });
       }
 
       const response: MealSummaryDto = {
@@ -205,16 +154,10 @@ export class MealController {
         isArchived: false,
       };
 
-      return new Response(JSON.stringify({ data: response }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse({ data: response });
     } catch (error) {
       if (error instanceof Error && error.message.includes('invalid date')) {
-        return new Response(JSON.stringify(createErrorBody('Invalid date provided')), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse(createErrorBody('Invalid date provided'), 400);
       }
 
       if (error instanceof Error && error.message.includes('settings not found')) {
@@ -228,10 +171,7 @@ export class MealController {
       }
 
       console.error('Error fetching random meal:', error);
-      return new Response(JSON.stringify(createErrorBody('Internal server error')), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(createErrorBody('Internal server error'), 500);
     }
   }
 
@@ -248,22 +188,13 @@ export class MealController {
         tenantId,
       });
 
-      return new Response(JSON.stringify(toMealResponseDto(snapshot)), {
-        status: 201,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(toMealResponseDto(snapshot), 201);
     } catch (error: unknown) {
       if (errorMessage(error).includes('Invalid request')) {
-        return new Response(JSON.stringify(createErrorBody(errorMessage(error))), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse(createErrorBody(errorMessage(error)), 400);
       }
       console.error('Error creating meal:', error);
-      return new Response(JSON.stringify(createErrorBody('Internal server error')), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(createErrorBody('Internal server error'), 500);
     }
   }
 
@@ -275,7 +206,8 @@ export class MealController {
       const url = new URL(context.request.url);
       const filters: MealFilters = {};
 
-      if (url.searchParams.get('name')) filters.name = url.searchParams.get('name');
+      const name = url.searchParams.get('name');
+      if (name) filters.name = name;
       if (url.searchParams.get('isDinner'))
         filters.isDinner = url.searchParams.get('isDinner') === 'true';
       if (url.searchParams.get('isLunch'))
@@ -320,10 +252,7 @@ export class MealController {
       );
     } catch (error: unknown) {
       console.error('Error listing meals:', error);
-      return new Response(JSON.stringify(createErrorBody('Internal server error')), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(createErrorBody('Internal server error'), 500);
     }
   }
 
@@ -331,10 +260,7 @@ export class MealController {
     try {
       const id = context.params.id ?? undefined;
       if (!id) {
-        return new Response(JSON.stringify(createErrorBody('Meal ID is required')), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse(createErrorBody('Meal ID is required'), 400);
       }
       const body = (await context.request.json()) as unknown;
       const dto = validateUpdateMealRequest(body);
@@ -348,29 +274,17 @@ export class MealController {
         ...dto,
       });
 
-      return new Response(JSON.stringify(toMealResponseDto(snapshot)), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(toMealResponseDto(snapshot));
     } catch (error: unknown) {
       const msg = errorMessage(error);
       if (msg.includes('not found')) {
-        return new Response(JSON.stringify(createErrorBody(msg)), {
-          status: 404,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse(createErrorBody(msg), 404);
       }
       if (msg.includes('Invalid request')) {
-        return new Response(JSON.stringify(createErrorBody(msg)), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse(createErrorBody(msg), 400);
       }
       console.error('Error updating meal:', error);
-      return new Response(JSON.stringify(createErrorBody('Internal server error')), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(createErrorBody('Internal server error'), 500);
     }
   }
 
@@ -378,10 +292,7 @@ export class MealController {
     try {
       const id = context.params.id ?? undefined;
       if (!id) {
-        return new Response(JSON.stringify(createErrorBody('Meal ID is required')), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse(createErrorBody('Meal ID is required'), 400);
       }
 
       // TODO: Extract tenantId from auth context
@@ -392,22 +303,13 @@ export class MealController {
         tenantId,
       });
 
-      return new Response(JSON.stringify(toMealResponseDto(snapshot)), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(toMealResponseDto(snapshot));
     } catch (error: unknown) {
       if (errorMessage(error).includes('not found')) {
-        return new Response(JSON.stringify(createErrorBody(errorMessage(error))), {
-          status: 404,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse(createErrorBody(errorMessage(error)), 404);
       }
       console.error('Error archiving meal:', error);
-      return new Response(JSON.stringify(createErrorBody('Internal server error')), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(createErrorBody('Internal server error'), 500);
     }
   }
 }

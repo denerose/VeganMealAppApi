@@ -19,9 +19,9 @@ export type RequestPasswordResetResponse = {
  */
 export class RequestPasswordResetUseCase {
   constructor(
-    private userRepository: UserRepository,
-    private authRepository: AuthRepository,
-    private emailService: EmailService
+    private readonly userRepository: UserRepository,
+    private readonly authRepository: AuthRepository,
+    private readonly emailService: EmailService
   ) {}
 
   /**
@@ -33,7 +33,6 @@ export class RequestPasswordResetUseCase {
     // Find user by email
     const userWithPassword = await this.userRepository.findByEmailWithPassword(request.email);
 
-    // T079: Generic success message (don't reveal if email exists)
     // Always return success to prevent user enumeration
     if (!userWithPassword) {
       return {
@@ -41,16 +40,13 @@ export class RequestPasswordResetUseCase {
       };
     }
 
-    // T065: Generate cryptographically random token (32+ bytes)
     const token = randomBytes(32).toString('hex');
 
-    // T066: Create password reset token with 1 hour expiration
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 1);
 
     await this.authRepository.createPasswordResetToken(userWithPassword.user.id, token, expiresAt);
 
-    // T070: Send password reset email
     const resetUrl = `${request.resetUrl}?token=${token}`;
     await this.emailService.sendPasswordResetEmail(request.email, token, resetUrl);
 
