@@ -14,10 +14,8 @@ export class UserSettingsController {
 
   async getUserSettings(context: RouteContext): Promise<Response> {
     try {
-      // TODO: Extract userId and tenantId from authentication context
-      // For now, placeholder auth check
-      const userId: string = context.params.userId ?? 'mock-user-id';
-      const tenantId: string = context.params.tenantId ?? 'mock-tenant-id';
+      const userId = context.userId;
+      const tenantId = context.tenantId;
 
       if (!userId || !tenantId) {
         return jsonResponse(createErrorBody('Unauthorized'), 401);
@@ -40,15 +38,11 @@ export class UserSettingsController {
 
   async updateUserSettings(context: RouteContext): Promise<Response> {
     try {
-      // TODO: Extract userId and tenantId from authentication context
-      const userId = context.params.userId || 'mock-user-id';
-      const tenantId = context.params.tenantId || 'mock-tenant-id';
+      const userId = context.userId;
+      const tenantId = context.tenantId;
 
       if (!userId || !tenantId) {
-        return new Response(JSON.stringify(createErrorBody('Unauthorized')), {
-          status: 401,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse(createErrorBody('Unauthorized'), 401);
       }
 
       // Validate request body
