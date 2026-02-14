@@ -1,0 +1,458 @@
+openapi: 3.0.0
+info:
+  title: User Authentication API
+  description: |
+    RESTful API endpoints for user authentication and registration.
+    
+    ## Features
+    - User registration with email/password
+    - User authentication (login) with JWT tokens
+    - Password management (change/reset)
+    - User profile management
+    - Multi-tenant support with tenant isolation
+    
+    ## Authentication
+    Protected endpoints require JWT Bearer token in `Authorization: Bearer <token>` header.
+    Tokens expire after 24 hours.
+    
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@veganmealapp.example.com
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Local development server
+  - url: https://api.veganmealapp.example.com/v1
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication and registration
+  - name: Password Management
+    description: Password change and reset operations
+  - name: User Profile
+    description: User profile management
+
+paths:
+  # ============================================================================
+  # AUTHENTICATION
+  # ============================================================================
+  
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register a new user
+      description: |
+        Creates a new user account and tenant. The registering user becomes the tenant admin.
+        Returns authentication token upon successful registration.
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
+    
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Authenticate user
+      description: |
+        Authenticates user with email and password. Returns JWT token valid for 24 hours.
+        Rate limited to 3 attempts per 10 minutes per IP address.
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Too many attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
+  
+  # ============================================================================
+  # PASSWORD MANAGEMENT
+  # ============================================================================
+  
+  /auth/password/change:
+    post:
+      tags: [Password Management]
+      summary: Change password
+      description: |
+        Changes the authenticated user's password. Requires current password verification.
+      operationId: changePassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'Password changed successfully'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+  
+  /auth/password/reset/request:
+    post:
+      tags: [Password Management]
+      summary: Request password reset
+      description: |
+        Sends password reset email to user. Rate limited to 3 attempts per 10 minutes per IP address.
+        Returns success message even if email doesn't exist (security best practice).
+      operationId: requestPasswordReset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+      responses:
+        '200':
+          description: Password reset email sent (if email exists)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'If the email exists, a password reset link has been sent'
+        '429':
+          description: Too many attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
+  
+  /auth/password/reset:
+    post:
+      tags: [Password Management]
+      summary: Reset password
+      description: |
+        Resets password using reset token from email. Token expires after 1 hour and is single-use.
+      operationId: resetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '200':
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'Password reset successfully'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Invalid or expired reset token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
+  
+  # ============================================================================
+  # USER PROFILE
+  # ============================================================================
+  
+  /auth/profile:
+    get:
+      tags: [User Profile]
+      summary: Get user profile
+      description: Retrieves the authenticated user's profile information
+      operationId: getUserProfile
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+    
+    patch:
+      tags: [User Profile]
+      summary: Update user profile
+      description: Updates the authenticated user's profile (nickname only, email is immutable)
+      operationId: updateUserProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+
+# ==============================================================================
+# COMPONENTS
+# ==============================================================================
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from authentication endpoint
+  
+  schemas:
+    # ==========================================================================
+    # AUTHENTICATION
+    # ==========================================================================
+    
+    RegisterRequest:
+      type: object
+      required: [email, password, nickname, tenantName]
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address (unique identifier)
+          example: 'vegan-chef@example.com'
+        password:
+          type: string
+          minLength: 8
+          description: Password (minimum 8 characters, at least one letter and one number)
+          example: 'securePass123'
+        nickname:
+          type: string
+          minLength: 1
+          maxLength: 50
+          description: User display name
+          example: 'Vegan Chef'
+        tenantName:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Tenant/household name (creates new tenant)
+          example: 'Smith Family'
+    
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: 'vegan-chef@example.com'
+        password:
+          type: string
+          example: 'securePass123'
+    
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT authentication token (valid for 24 hours)
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+        user:
+          $ref: '#/components/schemas/UserProfile'
+    
+    # ==========================================================================
+    # PASSWORD MANAGEMENT
+    # ==========================================================================
+    
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+          description: Current password for verification
+          example: 'oldPass123'
+        newPassword:
+          type: string
+          minLength: 8
+          description: New password (minimum 8 characters, at least one letter and one number)
+          example: 'newSecurePass456'
+    
+    PasswordResetRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email address to send reset link
+          example: 'vegan-chef@example.com'
+    
+    ResetPasswordRequest:
+      type: object
+      required: [token, newPassword]
+      properties:
+        token:
+          type: string
+          description: Password reset token from email
+          example: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6'
+        newPassword:
+          type: string
+          minLength: 8
+          description: New password (minimum 8 characters, at least one letter and one number)
+          example: 'newSecurePass456'
+    
+    # ==========================================================================
+    # USER PROFILE
+    # ==========================================================================
+    
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: '123e4567-e89b-12d3-a456-426614174000'
+        email:
+          type: string
+          format: email
+          example: 'vegan-chef@example.com'
+        nickname:
+          type: string
+          example: 'Vegan Chef'
+        tenantId:
+          type: string
+          format: uuid
+          example: '123e4567-e89b-12d3-a456-426614174001'
+        tenantName:
+          type: string
+          example: 'Smith Family'
+        isTenantAdmin:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-02-13T10:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2026-02-13T10:00:00Z'
+      required: [id, email, nickname, tenantId, tenantName, isTenantAdmin, createdAt, updatedAt]
+    
+    UpdateProfileRequest:
+      type: object
+      required: [nickname]
+      properties:
+        nickname:
+          type: string
+          minLength: 1
+          maxLength: 50
+          description: New display name
+          example: 'Vegan Master Chef'
+    
+    # ==========================================================================
+    # COMMON
+    # ==========================================================================
+    
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: 'VALIDATION_ERROR'
+            message:
+              type: string
+              example: 'Invalid request parameters'
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+          required: [code, message]
+      required: [error]
+  
+  responses:
+    BadRequest:
+      description: Bad request - invalid parameters or request body
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    Unauthorized:
+      description: Unauthorized - missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+security:
+  - bearerAuth: []

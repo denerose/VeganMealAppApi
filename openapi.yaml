@@ -1,0 +1,1621 @@
+openapi: 3.0.0
+info:
+  title: Vegan Meal Planning API
+  description: |
+    RESTful API for managing vegan meal planning, meal libraries, weekly meal schedules, and user authentication.
+    
+    ## Features
+    - **Multi-tenant support** with row-level isolation
+    - **Weekly meal planning** (7-day cycles)
+    - **Personal meal library** management
+    - **Ingredient tracking** with storage types
+    - **Quality-based meal filtering**
+    - **Random meal suggestion**
+    - **Leftover auto-population**
+    - **User authentication** with JWT tokens
+    - **Password management** (change/reset)
+    - **User profile** management
+    
+    ## Authentication
+    Protected endpoints require JWT Bearer token in `Authorization: Bearer <token>` header.
+    Tokens expire after 24 hours and are obtained via `/auth/login` or `/auth/register`.
+    
+    Public endpoints (authentication and password reset) do not require authentication.
+    
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@veganmealapp.example.com
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Local development server
+  - url: https://api.veganmealapp.example.com/v1
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication and registration
+  - name: Password Management
+    description: Password change and reset operations
+  - name: User Profile
+    description: User profile management
+  - name: Planned Weeks
+    description: Weekly meal planning operations
+  - name: Day Plans
+    description: Individual day meal planning
+  - name: Meals
+    description: Meal library management
+  - name: Ingredients
+    description: Ingredient management
+  - name: User Settings
+    description: Tenant-level preferences and configuration
+  - name: Health
+    description: API health and status endpoints
+
+paths:
+  # ============================================================================
+  # AUTHENTICATION
+  # ============================================================================
+  
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register a new user
+      description: |
+        Creates a new user account and tenant. The registering user becomes the tenant admin.
+        Returns authentication token upon successful registration.
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
+    
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Authenticate user
+      description: |
+        Authenticates user with email and password. Returns JWT token valid for 24 hours.
+        Rate limited to 3 attempts per 10 minutes per IP address.
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Too many attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
+  
+  # ============================================================================
+  # PASSWORD MANAGEMENT
+  # ============================================================================
+  
+  /auth/password/change:
+    post:
+      tags: [Password Management]
+      summary: Change password
+      description: |
+        Changes the authenticated user's password. Requires current password verification.
+      operationId: changePassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'Password changed successfully'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+  
+  /auth/password/reset/request:
+    post:
+      tags: [Password Management]
+      summary: Request password reset
+      description: |
+        Sends password reset email to user. Rate limited to 3 attempts per 10 minutes per IP address.
+        Returns success message even if email doesn't exist (security best practice).
+      operationId: requestPasswordReset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+      responses:
+        '200':
+          description: Password reset email sent (if email exists)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'If the email exists, a password reset link has been sent'
+        '429':
+          description: Too many attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
+  
+  /auth/password/reset:
+    post:
+      tags: [Password Management]
+      summary: Reset password
+      description: |
+        Resets password using reset token from email. Token expires after 1 hour and is single-use.
+      operationId: resetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '200':
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'Password reset successfully'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Invalid or expired reset token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
+  
+  # ============================================================================
+  # USER PROFILE
+  # ============================================================================
+  
+  /auth/profile:
+    get:
+      tags: [User Profile]
+      summary: Get user profile
+      description: Retrieves the authenticated user's profile information
+      operationId: getUserProfile
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+    
+    patch:
+      tags: [User Profile]
+      summary: Update user profile
+      description: Updates the authenticated user's profile (nickname only, email is immutable)
+      operationId: updateUserProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+
+  # ============================================================================
+  # PLANNED WEEKS
+  # ============================================================================
+  
+  /planned-weeks:
+    get:
+      tags: [Planned Weeks]
+      summary: List planned weeks for tenant
+      description: Retrieves all planned weeks for the authenticated user's tenant
+      operationId: listPlannedWeeks
+      parameters:
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Limit'
+        - name: startDate
+          in: query
+          description: Filter weeks starting on or after this date (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          description: Filter weeks starting on or before this date (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: List of planned weeks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PlannedWeek'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+    
+    post:
+      tags: [Planned Weeks]
+      summary: Create a new planned week
+      description: |
+        Creates a new 7-day meal planning week starting from the specified date.
+        The starting date must align with the tenant's configured week start day.
+      operationId: createPlannedWeek
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [startingDate]
+              properties:
+                startingDate:
+                  type: string
+                  format: date
+                  description: Week start date (must match tenant's weekStartDay setting)
+                  example: '2025-01-06'
+      responses:
+        '201':
+          description: Planned week created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlannedWeek'
+        '400':
+          description: Invalid request (e.g., start date doesn't match week start day)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+  
+  /planned-weeks/{weekId}:
+    get:
+      tags: [Planned Weeks]
+      summary: Get a specific planned week
+      description: Retrieves a planned week with all its day plans and assigned meals
+      operationId: getPlannedWeek
+      parameters:
+        - $ref: '#/components/parameters/WeekId'
+      responses:
+        '200':
+          description: Planned week details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlannedWeek'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+    
+    delete:
+      tags: [Planned Weeks]
+      summary: Delete a planned week
+      description: Permanently deletes a planned week and all its day plans
+      operationId: deletePlannedWeek
+      parameters:
+        - $ref: '#/components/parameters/WeekId'
+      responses:
+        '204':
+          description: Planned week deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+  
+  # ============================================================================
+  # DAY PLANS
+  # ============================================================================
+  
+  /day-plans/{dayPlanId}:
+    get:
+      tags: [Day Plans]
+      summary: Get a specific day plan
+      description: Retrieves a single day plan with assigned meals
+      operationId: getDayPlan
+      parameters:
+        - $ref: '#/components/parameters/DayPlanId'
+      responses:
+        '200':
+          description: Day plan details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DayPlan'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+    
+    patch:
+      tags: [Day Plans]
+      summary: Update day plan meal assignments
+      description: Assign or remove meals from lunch/dinner slots
+      operationId: updateDayPlan
+      parameters:
+        - $ref: '#/components/parameters/DayPlanId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                lunchMealId:
+                  type: string
+                  format: uuid
+                  nullable: true
+                  description: Meal ID for lunch (null to remove)
+                dinnerMealId:
+                  type: string
+                  format: uuid
+                  nullable: true
+                  description: Meal ID for dinner (null to remove)
+      responses:
+        '200':
+          description: Day plan updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DayPlan'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+  
+  # ============================================================================
+  # MEALS
+  # ============================================================================
+  
+  /meals:
+    get:
+      tags: [Meals]
+      summary: List meals in library
+      description: Retrieves all active (non-archived) meals for the tenant
+      operationId: listMeals
+      parameters:
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Limit'
+        - name: search
+          in: query
+          description: Search by meal name
+          schema:
+            type: string
+        - name: createdBy
+          in: query
+          description: Filter by creator user ID
+          schema:
+            type: string
+            format: uuid
+        - name: isDinner
+          in: query
+          description: Filter meals suitable for dinner
+          schema:
+            type: boolean
+        - name: isLunch
+          in: query
+          description: Filter meals suitable for lunch
+          schema:
+            type: boolean
+        - name: isCreamy
+          in: query
+          description: Filter creamy meals
+          schema:
+            type: boolean
+        - name: isAcidic
+          in: query
+          description: Filter acidic meals
+          schema:
+            type: boolean
+        - name: greenVeg
+          in: query
+          description: Filter meals with green vegetables
+          schema:
+            type: boolean
+        - name: makesLunch
+          in: query
+          description: Filter meals that make leftovers for lunch
+          schema:
+            type: boolean
+        - name: isEasyToMake
+          in: query
+          description: Filter easy-to-make meals
+          schema:
+            type: boolean
+        - name: needsPrep
+          in: query
+          description: Filter meals requiring prep
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of meals
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Meal'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+    
+    post:
+      tags: [Meals]
+      summary: Create a new meal
+      description: Adds a new meal to the tenant's library
+      operationId: createMeal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMealRequest'
+      responses:
+        '201':
+          description: Meal created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meal'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+  
+  /meals/{mealId}:
+    get:
+      tags: [Meals]
+      summary: Get a specific meal
+      description: Retrieves meal details including qualities and ingredients
+      operationId: getMeal
+      parameters:
+        - $ref: '#/components/parameters/MealId'
+      responses:
+        '200':
+          description: Meal details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meal'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+    
+    put:
+      tags: [Meals]
+      summary: Update a meal
+      description: Updates meal details, qualities, and ingredients
+      operationId: updateMeal
+      parameters:
+        - $ref: '#/components/parameters/MealId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMealRequest'
+      responses:
+        '200':
+          description: Meal updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meal'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+    
+    delete:
+      tags: [Meals]
+      summary: Archive a meal
+      description: |
+        Soft-deletes a meal (archives it). Archived meals:
+        - No longer appear in active library
+        - Cannot be assigned to new day plans
+        - Remain visible in existing planned weeks with archived status
+      operationId: archiveMeal
+      parameters:
+        - $ref: '#/components/parameters/MealId'
+      responses:
+        '204':
+          description: Meal archived successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+  
+  /meals/eligible:
+    get:
+      tags: [Meals]
+      summary: Get eligible meals
+      description: |
+        Returns meals eligible for a specific day and meal type (lunch/dinner)
+        based on tenant's quality preferences for that day.
+        Returns empty array if no meals match preferences.
+      operationId: getEligibleMeals
+      parameters:
+        - name: date
+          in: query
+          required: true
+          description: Date for which to find eligible meals (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+          example: '2025-01-06'
+        - name: mealType
+          in: query
+          required: true
+          description: Type of meal (lunch or dinner)
+          schema:
+            type: string
+            enum: [lunch, dinner]
+      responses:
+        '200':
+          description: List of eligible meals
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Meal'
+                  criteria:
+                    type: object
+                    description: Quality preferences used for filtering
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+  
+  /meals/random:
+    get:
+      tags: [Meals]
+      summary: Get random eligible meal
+      description: |
+        Returns a randomly selected meal from eligible meals for a specific day and meal type.
+        Returns empty response if no eligible meals exist.
+      operationId: getRandomEligibleMeal
+      parameters:
+        - name: date
+          in: query
+          required: true
+          description: Date for which to find eligible meals (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+          example: '2025-01-06'
+        - name: mealType
+          in: query
+          required: true
+          description: Type of meal (lunch or dinner)
+          schema:
+            type: string
+            enum: [lunch, dinner]
+      responses:
+        '200':
+          description: Random eligible meal (or null if none available)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Meal'
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        example: 'No eligible meals found for the specified criteria'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+  
+  # ============================================================================
+  # INGREDIENTS
+  # ============================================================================
+  
+  /ingredients:
+    get:
+      tags: [Ingredients]
+      summary: List ingredients
+      description: Retrieves all ingredients for the tenant
+      operationId: listIngredients
+      parameters:
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Limit'
+        - name: search
+          in: query
+          description: Search by ingredient name
+          schema:
+            type: string
+        - name: storageType
+          in: query
+          description: Filter by storage type
+          schema:
+            $ref: '#/components/schemas/StorageType'
+        - name: staple
+          in: query
+          description: Filter by staple flag
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of ingredients
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Ingredient'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+    
+    post:
+      tags: [Ingredients]
+      summary: Create a new ingredient
+      description: Adds a new ingredient to the tenant's library
+      operationId: createIngredient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateIngredientRequest'
+      responses:
+        '201':
+          description: Ingredient created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ingredient'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Ingredient with this name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+  
+  /ingredients/{ingredientId}:
+    get:
+      tags: [Ingredients]
+      summary: Get a specific ingredient
+      description: Retrieves ingredient details
+      operationId: getIngredient
+      parameters:
+        - $ref: '#/components/parameters/IngredientId'
+      responses:
+        '200':
+          description: Ingredient details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ingredient'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+    
+    put:
+      tags: [Ingredients]
+      summary: Update an ingredient
+      description: Updates ingredient details
+      operationId: updateIngredient
+      parameters:
+        - $ref: '#/components/parameters/IngredientId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateIngredientRequest'
+      responses:
+        '200':
+          description: Ingredient updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ingredient'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+    
+    delete:
+      tags: [Ingredients]
+      summary: Delete an ingredient
+      description: Permanently deletes an ingredient (only if not used in any meals)
+      operationId: deleteIngredient
+      parameters:
+        - $ref: '#/components/parameters/IngredientId'
+      responses:
+        '204':
+          description: Ingredient deleted successfully
+        '409':
+          description: Cannot delete ingredient (used in meals)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+  
+  # ============================================================================
+  # USER SETTINGS
+  # ============================================================================
+  
+  /user-settings:
+    get:
+      tags: [User Settings]
+      summary: Get tenant settings
+      description: Retrieves the tenant's user settings (available to all users)
+      operationId: getUserSettings
+      responses:
+        '200':
+          description: User settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSettings'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+    
+    put:
+      tags: [User Settings]
+      summary: Update tenant settings
+      description: Updates tenant settings (admin only)
+      operationId: updateUserSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserSettingsRequest'
+      responses:
+        '200':
+          description: Settings updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSettings'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          description: Forbidden - user is not a tenant admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+  
+  # ============================================================================
+  # HEALTH
+  # ============================================================================
+  
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      description: Returns API health status
+      operationId: healthCheck
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: 'ok'
+                  timestamp:
+                    type: string
+                    format: date-time
+                  path:
+                    type: string
+                    example: '/api/v1/health'
+
+# ==============================================================================
+# COMPONENTS
+# ==============================================================================
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from authentication endpoint
+  
+  parameters:
+    WeekId:
+      name: weekId
+      in: path
+      required: true
+      description: Planned week unique identifier
+      schema:
+        type: string
+        format: uuid
+    
+    DayPlanId:
+      name: dayPlanId
+      in: path
+      required: true
+      description: Day plan unique identifier
+      schema:
+        type: string
+        format: uuid
+    
+    MealId:
+      name: mealId
+      in: path
+      required: true
+      description: Meal unique identifier
+      schema:
+        type: string
+        format: uuid
+    
+    IngredientId:
+      name: ingredientId
+      in: path
+      required: true
+      description: Ingredient unique identifier
+      schema:
+        type: string
+        format: uuid
+    
+    Offset:
+      name: offset
+      in: query
+      description: Number of items to skip
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    
+    Limit:
+      name: limit
+      in: query
+      description: Maximum number of items to return
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+  
+  schemas:
+    # ==========================================================================
+    # AUTHENTICATION
+    # ==========================================================================
+    
+    RegisterRequest:
+      type: object
+      required: [email, password, nickname, tenantName]
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address (unique identifier)
+          example: 'vegan-chef@example.com'
+        password:
+          type: string
+          minLength: 8
+          description: Password (minimum 8 characters, at least one letter and one number)
+          example: 'securePass123'
+        nickname:
+          type: string
+          minLength: 1
+          maxLength: 50
+          description: User display name
+          example: 'Vegan Chef'
+        tenantName:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Tenant/household name (creates new tenant)
+          example: 'Smith Family'
+    
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: 'vegan-chef@example.com'
+        password:
+          type: string
+          example: 'securePass123'
+    
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT authentication token (valid for 24 hours)
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+        user:
+          $ref: '#/components/schemas/UserProfile'
+    
+    # ==========================================================================
+    # PASSWORD MANAGEMENT
+    # ==========================================================================
+    
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+          description: Current password for verification
+          example: 'oldPass123'
+        newPassword:
+          type: string
+          minLength: 8
+          description: New password (minimum 8 characters, at least one letter and one number)
+          example: 'newSecurePass456'
+    
+    PasswordResetRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email address to send reset link
+          example: 'vegan-chef@example.com'
+    
+    ResetPasswordRequest:
+      type: object
+      required: [token, newPassword]
+      properties:
+        token:
+          type: string
+          description: Password reset token from email
+          example: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6'
+        newPassword:
+          type: string
+          minLength: 8
+          description: New password (minimum 8 characters, at least one letter and one number)
+          example: 'newSecurePass456'
+    
+    # ==========================================================================
+    # USER PROFILE
+    # ==========================================================================
+    
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: '123e4567-e89b-12d3-a456-426614174000'
+        email:
+          type: string
+          format: email
+          example: 'vegan-chef@example.com'
+        nickname:
+          type: string
+          example: 'Vegan Chef'
+        tenantId:
+          type: string
+          format: uuid
+          example: '123e4567-e89b-12d3-a456-426614174001'
+        tenantName:
+          type: string
+          example: 'Smith Family'
+        isTenantAdmin:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-02-13T10:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2026-02-13T10:00:00Z'
+      required: [id, email, nickname, tenantId, tenantName, isTenantAdmin, createdAt, updatedAt]
+    
+    UpdateProfileRequest:
+      type: object
+      required: [nickname]
+      properties:
+        nickname:
+          type: string
+          minLength: 1
+          maxLength: 50
+          description: New display name
+          example: 'Vegan Master Chef'
+    
+    # ==========================================================================
+    # PLANNED WEEK
+    # ==========================================================================
+    
+    PlannedWeek:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        startingDate:
+          type: string
+          format: date
+          description: Week start date (aligns with tenant's weekStartDay)
+          example: '2025-01-06'
+        dayPlans:
+          type: array
+          items:
+            $ref: '#/components/schemas/DayPlan'
+          minItems: 7
+          maxItems: 7
+        tenantId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, startingDate, dayPlans, tenantId, createdAt, updatedAt]
+    
+    # ==========================================================================
+    # DAY PLAN
+    # ==========================================================================
+    
+    DayPlan:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        date:
+          type: string
+          format: date
+          example: '2025-01-06'
+        longDay:
+          $ref: '#/components/schemas/DayOfWeek'
+        shortDay:
+          $ref: '#/components/schemas/ShortDay'
+        isLeftover:
+          type: boolean
+          description: True if lunch is auto-populated from previous dinner
+        lunchMeal:
+          $ref: '#/components/schemas/Meal'
+          nullable: true
+        dinnerMeal:
+          $ref: '#/components/schemas/Meal'
+          nullable: true
+        plannedWeekId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, date, longDay, shortDay, isLeftover, plannedWeekId, createdAt, updatedAt]
+    
+    # ==========================================================================
+    # MEAL
+    # ==========================================================================
+    
+    Meal:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        mealName:
+          type: string
+          example: 'Creamy Cashew Alfredo Pasta'
+        recipeLink:
+          type: string
+          nullable: true
+          example: 'https://example.com/recipes/cashew-alfredo'
+        mealImageId:
+          type: string
+          nullable: true
+          description: CDN image identifier
+        isArchived:
+          type: boolean
+          description: True if meal has been soft-deleted
+        qualities:
+          $ref: '#/components/schemas/MealQualities'
+        ingredients:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ingredient'
+        createdBy:
+          type: string
+          format: uuid
+          description: User ID of meal creator
+        tenantId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, mealName, isArchived, qualities, ingredients, createdBy, tenantId, createdAt, updatedAt]
+    
+    CreateMealRequest:
+      type: object
+      properties:
+        mealName:
+          type: string
+          minLength: 1
+          maxLength: 200
+        recipeLink:
+          type: string
+          nullable: true
+        mealImageId:
+          type: string
+          nullable: true
+        qualities:
+          $ref: '#/components/schemas/MealQualitiesInput'
+        ingredientIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Array of ingredient IDs to associate with meal
+      required: [mealName, qualities]
+    
+    UpdateMealRequest:
+      type: object
+      properties:
+        mealName:
+          type: string
+          minLength: 1
+          maxLength: 200
+        recipeLink:
+          type: string
+          nullable: true
+        mealImageId:
+          type: string
+          nullable: true
+        qualities:
+          $ref: '#/components/schemas/MealQualitiesInput'
+        ingredientIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+    
+    # ==========================================================================
+    # MEAL QUALITIES
+    # ==========================================================================
+    
+    MealQualities:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        isDinner:
+          type: boolean
+          default: true
+        isLunch:
+          type: boolean
+          default: false
+        isCreamy:
+          type: boolean
+          default: false
+        isAcidic:
+          type: boolean
+          default: false
+        greenVeg:
+          type: boolean
+          default: false
+        makesLunch:
+          type: boolean
+          default: false
+          description: True if meal produces leftovers for next day's lunch
+        isEasyToMake:
+          type: boolean
+          default: false
+        needsPrep:
+          type: boolean
+          default: false
+      required: [id, isDinner, isLunch, isCreamy, isAcidic, greenVeg, makesLunch, isEasyToMake, needsPrep]
+    
+    MealQualitiesInput:
+      type: object
+      properties:
+        isDinner:
+          type: boolean
+          default: true
+        isLunch:
+          type: boolean
+          default: false
+        isCreamy:
+          type: boolean
+          default: false
+        isAcidic:
+          type: boolean
+          default: false
+        greenVeg:
+          type: boolean
+          default: false
+        makesLunch:
+          type: boolean
+          default: false
+        isEasyToMake:
+          type: boolean
+          default: false
+        needsPrep:
+          type: boolean
+          default: false
+    
+    # ==========================================================================
+    # INGREDIENT
+    # ==========================================================================
+    
+    Ingredient:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        ingredientName:
+          type: string
+          example: 'Cashews'
+        staple:
+          type: boolean
+          description: True if pantry staple
+        storageType:
+          $ref: '#/components/schemas/StorageType'
+        tenantId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, ingredientName, staple, storageType, tenantId, createdAt, updatedAt]
+    
+    CreateIngredientRequest:
+      type: object
+      properties:
+        ingredientName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        staple:
+          type: boolean
+          default: false
+        storageType:
+          $ref: '#/components/schemas/StorageType'
+      required: [ingredientName, storageType]
+    
+    UpdateIngredientRequest:
+      type: object
+      properties:
+        ingredientName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        staple:
+          type: boolean
+        storageType:
+          $ref: '#/components/schemas/StorageType'
+    
+    # ==========================================================================
+    # USER SETTINGS
+    # ==========================================================================
+    
+    UserSettings:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        weekStartDay:
+          $ref: '#/components/schemas/WeekStartDay'
+        dailyPreferences:
+          type: array
+          items:
+            $ref: '#/components/schemas/DailyPreferences'
+          minItems: 7
+          maxItems: 7
+        tenantId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, weekStartDay, dailyPreferences, tenantId, createdAt, updatedAt]
+    
+    UpdateUserSettingsRequest:
+      type: object
+      properties:
+        weekStartDay:
+          $ref: '#/components/schemas/WeekStartDay'
+        dailyPreferences:
+          type: array
+          items:
+            $ref: '#/components/schemas/DailyPreferences'
+          minItems: 7
+          maxItems: 7
+    
+    DailyPreferences:
+      type: object
+      properties:
+        day:
+          $ref: '#/components/schemas/DayOfWeek'
+        preferences:
+          $ref: '#/components/schemas/QualityPreferences'
+      required: [day, preferences]
+    
+    QualityPreferences:
+      type: object
+      properties:
+        isCreamy:
+          type: boolean
+        isAcidic:
+          type: boolean
+        greenVeg:
+          type: boolean
+        isEasyToMake:
+          type: boolean
+        needsPrep:
+          type: boolean
+      description: Quality flags for filtering meals (all optional)
+    
+    # ==========================================================================
+    # ENUMS
+    # ==========================================================================
+    
+    WeekStartDay:
+      type: string
+      enum: [MONDAY, SATURDAY, SUNDAY]
+      example: MONDAY
+    
+    DayOfWeek:
+      type: string
+      enum: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY]
+      example: MONDAY
+    
+    ShortDay:
+      type: string
+      enum: [MON, TUE, WED, THU, FRI, SAT, SUN]
+      example: MON
+    
+    StorageType:
+      type: string
+      enum: [FRIDGE, PANTRY, FROZEN, OTHER]
+      example: PANTRY
+    
+    # ==========================================================================
+    # COMMON
+    # ==========================================================================
+    
+    Pagination:
+      type: object
+      properties:
+        offset:
+          type: integer
+          minimum: 0
+        limit:
+          type: integer
+          minimum: 1
+        total:
+          type: integer
+          minimum: 0
+          description: Total number of items available
+        hasMore:
+          type: boolean
+          description: True if more items exist beyond current page
+      required: [offset, limit, total, hasMore]
+    
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: 'VALIDATION_ERROR'
+            message:
+              type: string
+              example: 'Invalid request parameters'
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+          required: [code, message]
+      required: [error]
+  
+  responses:
+    BadRequest:
+      description: Bad request - invalid parameters or request body
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    Unauthorized:
+      description: Unauthorized - missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+security:
+  - bearerAuth: []

@@ -39,7 +39,7 @@ cd VeganMealAppApi
 bun install
 
 # 3. Start PostgreSQL
-docker-compose up -d
+podman compose up -d
 
 # 4. Set up environment
 cp .env.example .env
@@ -93,7 +93,49 @@ bun run db:studio        # Open Prisma Studio GUI
 
 ### Authentication
 
-All endpoints require JWT Bearer token in `Authorization` header:
+The API uses JWT (JSON Web Tokens) for authentication. Tokens expire after 24 hours.
+
+#### Authentication Endpoints (Public)
+
+- `POST /api/v1/auth/register` - Register a new user account
+  - Creates a new user, tenant, and assigns user as tenant admin
+  - Returns JWT token and user information
+  - Request body: `{ email, password, nickname, tenantName }`
+
+- `POST /api/v1/auth/login` - Authenticate user
+  - Returns JWT token valid for 24 hours
+  - Rate limited: 3 attempts per 10 minutes per IP
+  - Request body: `{ email, password }`
+
+#### Password Management
+
+- `POST /api/v1/auth/password/change` - Change password (protected)
+  - Requires current password verification
+  - Request body: `{ currentPassword, newPassword }`
+
+- `POST /api/v1/auth/password/reset/request` - Request password reset (public)
+  - Sends password reset email
+  - Rate limited: 3 attempts per 10 minutes per IP
+  - Returns generic success message (security best practice)
+  - Request body: `{ email }`
+
+- `POST /api/v1/auth/password/reset` - Reset password with token (public)
+  - Uses reset token from email
+  - Token expires after 1 hour and is single-use
+  - Request body: `{ token, newPassword }`
+
+#### User Profile (Protected)
+
+- `GET /api/v1/auth/profile` - Get user profile
+  - Returns user information (id, email, nickname, tenant info, etc.)
+
+- `PATCH /api/v1/auth/profile` - Update user profile
+  - Updates nickname only (email is immutable)
+  - Request body: `{ nickname }`
+
+#### Protected Endpoints
+
+All other endpoints require JWT Bearer token in `Authorization` header:
 
 ```bash
 Authorization: Bearer <jwt-token>
@@ -129,7 +171,10 @@ Authorization: Bearer <jwt-token>
 - `GET /api/v1/user-settings` - Get preferences
 - `PUT /api/v1/user-settings` - Update preferences
 
-For complete API documentation, see [OpenAPI Spec](./specs/001-001-meal-planning-api/contracts/openapi.yaml)
+For complete API documentation, see:
+- [Unified OpenAPI Specification](./openapi.yaml) - Complete API reference (recommended)
+- [Meal Planning API Spec](./specs/001-meal-planning-api/contracts/openapi.yaml) - Meal planning endpoints only
+- [User Authentication API Spec](./specs/003-user-auth/contracts/openapi.yaml) - Authentication endpoints only
 
 ## Project Structure
 
@@ -157,11 +202,16 @@ tests/
 └── e2e/               # API contract tests
 
 specs/
-└── 001-001-meal-planning-api/
-    ├── spec.md         # Feature specification
-    ├── plan.md         # Implementation plan
-    ├── data-model.md   # Database schema
-    └── contracts/      # OpenAPI specification
+├── 001-meal-planning-api/  # Meal planning feature
+│   ├── spec.md
+│   ├── plan.md
+│   ├── data-model.md
+│   └── contracts/
+└── 003-user-auth/          # User authentication feature
+    ├── spec.md
+    ├── plan.md
+    ├── data-model.md
+    └── contracts/
 ```
 
 ## Architecture

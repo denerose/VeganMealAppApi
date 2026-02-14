@@ -10,6 +10,7 @@ const RESET_TABLES = [
   'ingredients',
   'meals',
   'user_settings',
+  'password_reset_tokens',
   'users',
   'tenants',
 ];

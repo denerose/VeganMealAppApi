@@ -13,6 +13,8 @@ import type { UserRepository } from '@/domain/user/user.repository';
 import { PrismaUserRepository } from '@/infrastructure/database/repositories/prisma-user.repository';
 import type { UserSettingsRepository } from '@/domain/user/user-settings.repository';
 import { PrismaUserSettingsRepository } from '@/infrastructure/database/repositories/prisma-user-settings.repository';
+import type { AuthRepository } from '@/domain/auth/auth.repository';
+import { PrismaAuthRepository } from '@/infrastructure/database/repositories/prisma-auth.repository';
 
 // Use Cases
 import { CreatePlannedWeekUseCase } from '@/application/planned-week/create-planned-week.usecase';
@@ -35,6 +37,13 @@ import { UpdateIngredientUseCase } from '@/application/use-cases/update-ingredie
 import { DeleteIngredientUseCase } from '@/application/use-cases/delete-ingredient.use-case';
 import { GetUserSettingsUseCase } from '@/application/use-cases/get-user-settings.use-case';
 import { UpdateUserSettingsUseCase } from '@/application/use-cases/update-user-settings.use-case';
+import { RegisterUserUseCase } from '@/application/auth/register-user.use-case';
+import { AuthenticateUserUseCase } from '@/application/auth/authenticate-user.use-case';
+import { ChangePasswordUseCase } from '@/application/auth/change-password.use-case';
+import { RequestPasswordResetUseCase } from '@/application/auth/request-password-reset.use-case';
+import { ResetPasswordUseCase } from '@/application/auth/reset-password.use-case';
+import { GetUserProfileUseCase } from '@/application/auth/get-user-profile.use-case';
+import { UpdateUserProfileUseCase } from '@/application/auth/update-user-profile.use-case';
 
 // Controllers
 import { PlannedWeekController } from '@/infrastructure/http/controllers/planned-week.controller';
@@ -42,7 +51,15 @@ import { DayPlanController } from '@/infrastructure/http/controllers/day-plan.co
 import { MealController } from '@/infrastructure/http/controllers/meal.controller';
 import { IngredientController } from '@/infrastructure/http/controllers/ingredient.controller';
 import { UserSettingsController } from '@/infrastructure/http/controllers/user-settings.controller';
+import { AuthController } from '@/infrastructure/http/controllers/auth.controller';
 import { GetEligibleMealsUserSettingsRepositoryAdapter } from '@/infrastructure/adapters/get-eligible-meals-user-settings.adapter';
+
+// Auth Infrastructure
+import { BcryptPasswordHasher } from '@/infrastructure/auth/password/bcrypt-password-hasher';
+import { JWTGenerator } from '@/infrastructure/auth/jwt/jwt-generator';
+import type { AuthProvider } from '@/domain/auth/auth-provider.interface';
+import { EmailPasswordAuthProvider } from '@/infrastructure/auth/providers/email-password-auth.provider';
+import { EmailService } from '@/infrastructure/auth/email/email.service';
 
 // ============================================================================
 // TOKENS
@@ -58,6 +75,7 @@ export const TOKENS = {
   IngredientRepository: createToken<IngredientRepository>('IngredientRepository'),
   UserRepository: createToken<UserRepository>('UserRepository'),
   UserSettingsRepository: createToken<UserSettingsRepository>('UserSettingsRepository'),
+  AuthRepository: createToken<AuthRepository>('AuthRepository'),
 
   // Use Cases
   CreatePlannedWeekUseCase: createToken<CreatePlannedWeekUseCase>('CreatePlannedWeekUseCase'),
@@ -80,6 +98,21 @@ export const TOKENS = {
   DeleteIngredientUseCase: createToken<DeleteIngredientUseCase>('DeleteIngredientUseCase'),
   GetUserSettingsUseCase: createToken<GetUserSettingsUseCase>('GetUserSettingsUseCase'),
   UpdateUserSettingsUseCase: createToken<UpdateUserSettingsUseCase>('UpdateUserSettingsUseCase'),
+  RegisterUserUseCase: createToken<RegisterUserUseCase>('RegisterUserUseCase'),
+  AuthenticateUserUseCase: createToken<AuthenticateUserUseCase>('AuthenticateUserUseCase'),
+  ChangePasswordUseCase: createToken<ChangePasswordUseCase>('ChangePasswordUseCase'),
+  RequestPasswordResetUseCase: createToken<RequestPasswordResetUseCase>(
+    'RequestPasswordResetUseCase'
+  ),
+  ResetPasswordUseCase: createToken<ResetPasswordUseCase>('ResetPasswordUseCase'),
+  GetUserProfileUseCase: createToken<GetUserProfileUseCase>('GetUserProfileUseCase'),
+  UpdateUserProfileUseCase: createToken<UpdateUserProfileUseCase>('UpdateUserProfileUseCase'),
+
+  // Auth Infrastructure
+  BcryptPasswordHasher: createToken<BcryptPasswordHasher>('BcryptPasswordHasher'),
+  JWTGenerator: createToken<JWTGenerator>('JWTGenerator'),
+  EmailPasswordAuthProvider: createToken<AuthProvider>('EmailPasswordAuthProvider'),
+  EmailService: createToken<EmailService>('EmailService'),
 
   // Controllers
   PlannedWeekController: createToken<PlannedWeekController>('PlannedWeekController'),
@@ -87,6 +120,7 @@ export const TOKENS = {
   MealController: createToken<MealController>('MealController'),
   IngredientController: createToken<IngredientController>('IngredientController'),
   UserSettingsController: createToken<UserSettingsController>('UserSettingsController'),
+  AuthController: createToken<AuthController>('AuthController'),
 };
 
 // ============================================================================
@@ -125,6 +159,12 @@ export const registerDependencies = (): void => {
   container.register(
     TOKENS.UserSettingsRepository,
     c => new PrismaUserSettingsRepository(c.resolve(TOKENS.PrismaClient)),
+    { singleton: true }
+  );
+
+  container.register(
+    TOKENS.AuthRepository,
+    c => new PrismaAuthRepository(c.resolve(TOKENS.PrismaClient)),
     { singleton: true }
   );
 
@@ -261,6 +301,102 @@ export const registerDependencies = (): void => {
     { singleton: true }
   );
 
+  // Auth Infrastructure
+  container.register(TOKENS.BcryptPasswordHasher, () => new BcryptPasswordHasher(), {
+    singleton: true,
+  });
+  container.register(TOKENS.JWTGenerator, () => new JWTGenerator(), { singleton: true });
+  container.register(
+    TOKENS.EmailPasswordAuthProvider,
+    c =>
+      new EmailPasswordAuthProvider(
+        c.resolve(TOKENS.PrismaClient),
+        c.resolve(TOKENS.UserRepository),
+        c.resolve(TOKENS.BcryptPasswordHasher),
+        c.resolve(TOKENS.JWTGenerator)
+      ),
+    { singleton: true }
+  );
+
+  // Auth Use Cases
+  container.register(
+    TOKENS.RegisterUserUseCase,
+    c =>
+      new RegisterUserUseCase(
+        c.resolve(TOKENS.PrismaClient),
+        c.resolve(TOKENS.BcryptPasswordHasher),
+        c.resolve(TOKENS.JWTGenerator)
+      ),
+    { singleton: true }
+  );
+
+  // T051: Register AuthenticateUserUseCase in DI container
+  container.register(
+    TOKENS.AuthenticateUserUseCase,
+    c =>
+      new AuthenticateUserUseCase(
+        c.resolve(TOKENS.PrismaClient),
+        c.resolve(TOKENS.UserRepository),
+        c.resolve(TOKENS.BcryptPasswordHasher),
+        c.resolve(TOKENS.JWTGenerator)
+      ),
+    { singleton: true }
+  );
+
+  // T077: Register password management use cases in DI container
+  container.register(
+    TOKENS.ChangePasswordUseCase,
+    c =>
+      new ChangePasswordUseCase(
+        c.resolve(TOKENS.UserRepository),
+        c.resolve(TOKENS.BcryptPasswordHasher)
+      ),
+    { singleton: true }
+  );
+
+  container.register(
+    TOKENS.RequestPasswordResetUseCase,
+    c =>
+      new RequestPasswordResetUseCase(
+        c.resolve(TOKENS.UserRepository),
+        c.resolve(TOKENS.AuthRepository),
+        c.resolve(TOKENS.EmailService)
+      ),
+    { singleton: true }
+  );
+
+  container.register(
+    TOKENS.ResetPasswordUseCase,
+    c =>
+      new ResetPasswordUseCase(
+        c.resolve(TOKENS.AuthRepository),
+        c.resolve(TOKENS.UserRepository),
+        c.resolve(TOKENS.BcryptPasswordHasher)
+      ),
+    { singleton: true }
+  );
+
+  // T092: Register profile management use cases in DI container
+  container.register(
+    TOKENS.GetUserProfileUseCase,
+    c =>
+      new GetUserProfileUseCase(c.resolve(TOKENS.PrismaClient), c.resolve(TOKENS.UserRepository)),
+    { singleton: true }
+  );
+
+  container.register(
+    TOKENS.UpdateUserProfileUseCase,
+    c =>
+      new UpdateUserProfileUseCase(
+        c.resolve(TOKENS.PrismaClient),
+        c.resolve(TOKENS.UserRepository)
+      ),
+    { singleton: true }
+  );
+
+  // Register EmailService
+  container.register(TOKENS.EmailService, () => new EmailService(), { singleton: true });
+
   // Controllers
   container.register(
     TOKENS.PlannedWeekController,
@@ -319,6 +455,21 @@ export const registerDependencies = (): void => {
       new UserSettingsController(
         c.resolve(TOKENS.GetUserSettingsUseCase),
         c.resolve(TOKENS.UpdateUserSettingsUseCase)
+      ),
+    { singleton: true }
+  );
+
+  container.register(
+    TOKENS.AuthController,
+    c =>
+      new AuthController(
+        c.resolve(TOKENS.RegisterUserUseCase),
+        c.resolve(TOKENS.AuthenticateUserUseCase),
+        c.resolve(TOKENS.ChangePasswordUseCase),
+        c.resolve(TOKENS.RequestPasswordResetUseCase),
+        c.resolve(TOKENS.ResetPasswordUseCase),
+        c.resolve(TOKENS.GetUserProfileUseCase),
+        c.resolve(TOKENS.UpdateUserProfileUseCase)
       ),
     { singleton: true }
   );
