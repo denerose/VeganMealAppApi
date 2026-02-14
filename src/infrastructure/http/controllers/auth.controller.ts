@@ -109,7 +109,7 @@ export class AuthController {
 
   async changePassword(context: RouteContext): Promise<Response> {
     try {
-      if (!context.userId) {
+      if (!context.userId || !context.tenantId) {
         return jsonResponse(createErrorBody('Authentication required'), 401);
       }
 
