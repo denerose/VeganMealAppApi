@@ -13,6 +13,7 @@
  */
 
 import { v5 as uuidv5 } from 'uuid';
+import bcrypt from 'bcrypt';
 import type { PrismaClient } from '@prisma/client';
 import { WeekStartDay } from '../src/domain/shared/week-start-day.enum';
 import {
@@ -20,6 +21,8 @@ import {
   SEED_INGREDIENTS,
   SEED_MEALS,
   SEED_USER_SETTINGS,
+  SEED_DEV_USERS,
+  SEED_DEV_USER_PASSWORD,
   getSystemUserIdForTenant,
   deterministicUuid,
   getNextWeekStart,
@@ -117,6 +120,37 @@ export interface SeedResult {
   userSettingsCreated: number;
   plannedWeeksCreated: number;
   dayPlansCreated: number;
+  usersCreated: number;
+}
+
+/**
+ * Ensure the 3 seed dev users exist (skip if exists by email).
+ * Called on every seed run so dev users are created even when the rest of the seed is skipped (idempotency).
+ */
+async function ensureSeedDevUsers(
+  prisma: PrismaClient,
+  result: SeedResult
+): Promise<void> {
+  const devPasswordHash = await bcrypt.hash(SEED_DEV_USER_PASSWORD, 10);
+  for (const devUser of SEED_DEV_USERS) {
+    const existing = await prisma.user.findUnique({ where: { email: devUser.email } });
+    if (existing) {
+      logVerbose(`  Skipped dev user (exists): ${devUser.email}`);
+      continue;
+    }
+    await prisma.user.create({
+      data: {
+        id: devUser.id,
+        email: devUser.email,
+        nickname: devUser.nickname,
+        passwordHash: devPasswordHash,
+        isTenantAdmin: devUser.isTenantAdmin,
+        tenantId: devUser.tenantId,
+      },
+    });
+    result.usersCreated++;
+    logVerbose(`  Created dev user: ${devUser.email}`);
+  }
 }
 
 /**
@@ -175,6 +209,7 @@ export async function seedDatabase(prisma: PrismaClient): Promise<SeedResult> {
     userSettingsCreated: 0,
     plannedWeeksCreated: 0,
     dayPlansCreated: 0,
+    usersCreated: 0,
   };
 
   // Check idempotency for first tenant
@@ -183,6 +218,8 @@ export async function seedDatabase(prisma: PrismaClient): Promise<SeedResult> {
 
   if (alreadySeeded) {
     log('Seed data already exists, skipping seeding');
+    logVerbose('Ensuring dev users exist...');
+    await ensureSeedDevUsers(prisma, result);
     return result;
   }
 
@@ -204,7 +241,11 @@ export async function seedDatabase(prisma: PrismaClient): Promise<SeedResult> {
       logVerbose(`  Created tenant: ${tenant.name}`);
     }
 
-    // 2-5. For each tenant: ensure system user, create ingredients, meals, and relationships (US2: tenant-scoped; no shared data)
+    // 2. Create dev users (skip if exists by email)
+    logVerbose('Creating dev users...');
+    await ensureSeedDevUsers(prisma, result);
+
+    // 3-6. For each tenant: ensure system user, create ingredients, meals, and relationships (US2: tenant-scoped; no shared data)
     for (const tenant of SEED_TENANTS) {
       logVerbose(`Ensuring system user for tenant ${tenant.id}...`);
       const systemUserId = await ensureSystemUser(prisma, tenant.id);

@@ -54,8 +54,10 @@ export class MealController {
         return jsonResponse(createErrorBody('date must be in YYYY-MM-DD format'), 400);
       }
 
-      // TODO: Extract tenantId from auth context
-      const tenantId = context.request.headers.get('x-tenant-id') || 'temp-tenant-id';
+      const tenantId = context.tenantId;
+      if (!tenantId) {
+        return jsonResponse(createErrorBody('Authentication required'), 401);
+      }
 
       const meals = await this.getEligibleMealsUseCase.execute({
         tenantId,
@@ -93,7 +95,10 @@ export class MealController {
         return jsonResponse(createErrorBody('Meal ID is required'), 400);
       }
 
-      const tenantId = context.request.headers.get('x-tenant-id') || 'temp-tenant-id';
+      const tenantId = context.tenantId;
+      if (!tenantId) {
+        return jsonResponse(createErrorBody('Authentication required'), 401);
+      }
 
       const snapshot = await this.getMealUseCase.execute({ id, tenantId });
 
@@ -133,8 +138,10 @@ export class MealController {
         return jsonResponse(createErrorBody('date must be in YYYY-MM-DD format'), 400);
       }
 
-      // TODO: Extract tenantId from auth context
-      const tenantId = context.request.headers.get('x-tenant-id') || 'temp-tenant-id';
+      const tenantId = context.tenantId;
+      if (!tenantId) {
+        return jsonResponse(createErrorBody('Authentication required'), 401);
+      }
 
       const meal = await this.getRandomMealUseCase.execute({
         tenantId,
@@ -180,8 +187,10 @@ export class MealController {
       const body = (await context.request.json()) as unknown;
       const dto = validateCreateMealRequest(body);
 
-      // TODO: Extract tenantId from auth context
-      const tenantId = context.request.headers.get('x-tenant-id') || 'temp-tenant-id';
+      const tenantId = context.tenantId;
+      if (!tenantId) {
+        return jsonResponse(createErrorBody('Authentication required'), 401);
+      }
 
       const snapshot = await this.createMealUseCase.execute({
         ...dto,
@@ -200,8 +209,10 @@ export class MealController {
 
   async list(context: RouteContext): Promise<Response> {
     try {
-      // TODO: Extract tenantId from auth context
-      const tenantId = context.request.headers.get('x-tenant-id') || 'temp-tenant-id';
+      const tenantId = context.tenantId;
+      if (!tenantId) {
+        return jsonResponse(createErrorBody('Authentication required'), 401);
+      }
 
       const url = new URL(context.request.url);
       const filters: MealFilters = {};
@@ -265,8 +276,10 @@ export class MealController {
       const body = (await context.request.json()) as unknown;
       const dto = validateUpdateMealRequest(body);
 
-      // TODO: Extract tenantId from auth context
-      const tenantId = context.request.headers.get('x-tenant-id') || 'temp-tenant-id';
+      const tenantId = context.tenantId;
+      if (!tenantId) {
+        return jsonResponse(createErrorBody('Authentication required'), 401);
+      }
 
       const snapshot = await this.updateMealUseCase.execute({
         id,
@@ -295,8 +308,10 @@ export class MealController {
         return jsonResponse(createErrorBody('Meal ID is required'), 400);
       }
 
-      // TODO: Extract tenantId from auth context
-      const tenantId = context.request.headers.get('x-tenant-id') || 'temp-tenant-id';
+      const tenantId = context.tenantId;
+      if (!tenantId) {
+        return jsonResponse(createErrorBody('Authentication required'), 401);
+      }
 
       const snapshot = await this.archiveMealUseCase.execute({
         id,

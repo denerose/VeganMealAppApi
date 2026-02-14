@@ -13,6 +13,8 @@ This guide provides examples for using the authentication API endpoints.
 - `curl` or HTTP client (Postman, Insomnia, etc.)
 - Valid email address for testing
 
+**Seed dev users**: After running `bun run db:seed`, you can sign in with 3 pre-created dev users. Emails and the shared password are in [SEEDING-GUIDE.md — Seed dev users](./SEEDING-GUIDE.md#seed-dev-users).
+
 ---
 
 ## 1. Register a New User
@@ -99,6 +101,10 @@ curl -X POST http://localhost:3000/api/v1/auth/login \
 **Rate Limiting**:
 - Limited to 3 attempts per 10 minutes per IP address
 - Exceeding limit returns 429 Too Many Requests
+
+**Calling other protected endpoints (meals, planned-weeks, etc.)**:
+- Use the same token in every request: `Authorization: Bearer <token>`.
+- Base URL for the API is `http://localhost:3000/api/v1`. For example, list meals: `GET http://localhost:3000/api/v1/meals` with header `Authorization: Bearer <token>`. If you use a variable like `{{baseUrl}}`, set it to `http://localhost:3000/api/v1` so that `{{baseUrl}}/meals` resolves to the correct path.
 
 ---
 

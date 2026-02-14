@@ -96,12 +96,26 @@ Environment variables (optional):
 | `SEED_VERBOSE` | `false` | Enable detailed logging (set to `true`) |
 | `DATABASE_URL` | (from `.env`) | Prisma database connection string |
 
+### Seed dev users
+
+The seed creates **3 dev test users** for local sign-in and multi-tenant testing. All three share a single password (dev only; do not use in production).
+
+| Email | Nickname | Tenant | Role |
+|-------|----------|--------|------|
+| `dev-tenant1-admin@seed.local` | Dev Tenant1 Admin | Tenant-1 | Admin |
+| `dev-tenant1-user@seed.local` | Dev Tenant1 User | Tenant-1 | Regular |
+| `dev-tenant2-admin@seed.local` | Dev Tenant2 Admin | Tenant-2 | Admin |
+
+**Shared password (all 3 users)**: `DevPassword1!`
+
+Use any of the above emails with this password to sign in via the auth API (e.g. `POST /api/v1/auth/login`). Re-running the seed does not create duplicate users (skip-if-exists by email).
+
 ### Expected Outputs
 
 **Success**:
 ```
 [12:34:56] ✓ Starting seed process...
-[12:34:57] ✓ Seeding completed: 20 meals, 30 ingredients, 2 tenants
+[12:34:57] ✓ Seeding completed: 20 meals, 30 ingredients, 2 tenants, 3 users
 ```
 
 **Already Seeded**:

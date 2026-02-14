@@ -23,7 +23,7 @@
 
 **Purpose**: Confirm dependencies and seed entry point are ready for dev user seeding.
 
-- [ ] T001 [P] Confirm bcrypt and Prisma are available for seed (package.json has bcrypt; prisma/seed.ts runs seedDatabase) so dev user password hashing can use bcrypt in prisma/seed-utils.ts
+- [x] T001 [P] Confirm bcrypt and Prisma are available for seed (package.json has bcrypt; prisma/seed.ts runs seedDatabase) so dev user password hashing can use bcrypt in prisma/seed-utils.ts
 
 ---
 
@@ -33,8 +33,8 @@
 
 **Checkpoint**: SEED_DEV_USERS and shared password constant exist; user story implementation can begin.
 
-- [ ] T002 [P] Add SEED_DEV_USERS array to prisma/seed-data.ts with 3 entries: deterministic id (deterministicUuid), email, nickname, tenantId, isTenantAdmin; 2 users for Tenant-1 (one admin, one regular), 1 user for Tenant-2 (admin); use SEED_TENANTS for tenantId
-- [ ] T003 Add shared password constant for dev users (e.g. in prisma/seed-data.ts or prisma/seed-utils.ts) used only at seed time; same value to be documented in docs/SEEDING-GUIDE.md
+- [x] T002 [P] Add SEED_DEV_USERS array to prisma/seed-data.ts with 3 entries: deterministic id (deterministicUuid), email, nickname, tenantId, isTenantAdmin; 2 users for Tenant-1 (one admin, one regular), 1 user for Tenant-2 (admin); use SEED_TENANTS for tenantId
+- [x] T003 Add shared password constant for dev users (e.g. in prisma/seed-data.ts or prisma/seed-utils.ts) used only at seed time; same value to be documented in docs/SEEDING-GUIDE.md
 
 ---
 
@@ -46,10 +46,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] In prisma/seed-utils.ts after tenants exist: hash shared password once with bcrypt (salt rounds 10); for each SEED_DEV_USER call prisma.user.findUnique({ where: { email } }); if null, prisma.user.create with id, email, nickname, passwordHash, isTenantAdmin, tenantId; run dev user creation after tenants and after system users (so meals still use system user as createdBy)
-- [ ] T005 [US1] Add usersCreated to SeedResult in prisma/seed-utils.ts (increment when each dev user is created) and log usersCreated in prisma/seed.ts completion output
-- [ ] T006 [P] [US1] Add integration tests in tests/integration/seeding.integration.spec.ts: after seed, assert exactly 3 dev users by known emails, 2 for Tenant-1 and 1 for Tenant-2, and exactly one isTenantAdmin per tenant
-- [ ] T007 [P] [US1] Extend E2E in tests/e2e/seeding.e2e.spec.ts: after seed, assert 3 users total and correct tenant assignment (2 users for first tenant, 1 for second)
+- [x] T004 [US1] In prisma/seed-utils.ts after tenants exist: hash shared password once with bcrypt (salt rounds 10); for each SEED_DEV_USER call prisma.user.findUnique({ where: { email } }); if null, prisma.user.create with id, email, nickname, passwordHash, isTenantAdmin, tenantId; run dev user creation after tenants and after system users (so meals still use system user as createdBy)
+- [x] T005 [US1] Add usersCreated to SeedResult in prisma/seed-utils.ts (increment when each dev user is created) and log usersCreated in prisma/seed.ts completion output
+- [x] T006 [P] [US1] Add integration tests in tests/integration/seeding.integration.spec.ts: after seed, assert exactly 3 dev users by known emails, 2 for Tenant-1 and 1 for Tenant-2, and exactly one isTenantAdmin per tenant
+- [x] T007 [P] [US1] Extend E2E in tests/e2e/seeding.e2e.spec.ts: after seed, assert 3 users total and correct tenant assignment (2 users for first tenant, 1 for second)
 
 **Checkpoint**: User Story 1 complete; 3 dev users created on first run, sign-in possible with documented credentials.
 
@@ -65,8 +65,8 @@
 
 Implementation is shared with US1 (skip-by-email in T004). This phase adds tests that verify idempotency.
 
-- [ ] T008 [P] [US2] Add integration test in tests/integration/seeding.integration.spec.ts: run seed twice (or seed then seed again), assert still exactly 3 dev users and no duplicate emails for seed dev user addresses
-- [ ] T009 [P] [US2] Add integration test in tests/integration/seeding.integration.spec.ts: when a user with the same email as a SEED_DEV_USER already exists, seed run does not create a duplicate and does not update that user (skip-if-exists by email)
+- [x] T008 [P] [US2] Add integration test in tests/integration/seeding.integration.spec.ts: run seed twice (or seed then seed again), assert still exactly 3 dev users and no duplicate emails for seed dev user addresses
+- [x] T009 [P] [US2] Add integration test in tests/integration/seeding.integration.spec.ts: when a user with the same email as a SEED_DEV_USER already exists, seed run does not create a duplicate and does not update that user (skip-if-exists by email)
 
 **Checkpoint**: User Story 2 verified; idempotency and skip-if-exists covered by tests.
 
@@ -76,9 +76,9 @@ Implementation is shared with US1 (skip-by-email in T004). This phase adds tests
 
 **Purpose**: Document credentials and update high-level docs so developers can find and use seed dev users.
 
-- [ ] T010 [P] Add "Seed dev users" section to docs/SEEDING-GUIDE.md with table: email, nickname, tenant, role (admin/regular), and shared password; state that all 3 users share one password
-- [ ] T011 [P] Add short pointer to Seed dev users (or SEEDING-GUIDE#seed-dev-users) in docs/quickstart.md so developers can find credentials quickly
-- [ ] T012 Update README.md seeding paragraph to mention 3 dev users (e.g. "The seed creates 2 tenants, 3 dev users, 10 meals and 15 ingredients per tenant…") if it currently lists what the seed creates
+- [x] T010 [P] Add "Seed dev users" section to docs/SEEDING-GUIDE.md with table: email, nickname, tenant, role (admin/regular), and shared password; state that all 3 users share one password
+- [x] T011 [P] Add short pointer to Seed dev users (or SEEDING-GUIDE#seed-dev-users) in docs/quickstart.md so developers can find credentials quickly
+- [x] T012 Update README.md seeding paragraph to mention 3 dev users (e.g. "The seed creates 2 tenants, 3 dev users, 10 meals and 15 ingredients per tenant…") if it currently lists what the seed creates
 
 ---
 

@@ -59,6 +59,40 @@ export function getSystemUserIdForTenant(tenantId: string): string {
 }
 
 /**
+ * Shared password for all seed dev users (dev/testing only).
+ * Documented in docs/SEEDING-GUIDE.md; do not use in production.
+ */
+export const SEED_DEV_USER_PASSWORD = 'DevPassword1!';
+
+/**
+ * Seed dev users: 2 for Tenant-1 (one admin, one regular), 1 for Tenant-2 (admin).
+ * Used for local sign-in and multi-tenant testing; skip-if-exists by email.
+ */
+export const SEED_DEV_USERS = [
+  {
+    id: deterministicUuid('Seed-Dev-Tenant1-Admin'),
+    email: 'dev-tenant1-admin@seed.local',
+    nickname: 'Dev Tenant1 Admin',
+    tenantId: SEED_TENANTS[0].id,
+    isTenantAdmin: true,
+  },
+  {
+    id: deterministicUuid('Seed-Dev-Tenant1-User'),
+    email: 'dev-tenant1-user@seed.local',
+    nickname: 'Dev Tenant1 User',
+    tenantId: SEED_TENANTS[0].id,
+    isTenantAdmin: false,
+  },
+  {
+    id: deterministicUuid('Seed-Dev-Tenant2-Admin'),
+    email: 'dev-tenant2-admin@seed.local',
+    nickname: 'Dev Tenant2 Admin',
+    tenantId: SEED_TENANTS[1].id,
+    isTenantAdmin: true,
+  },
+];
+
+/**
  * Ingredient seed data (15 vegan ingredients per tenant)
  *
  * Distribution:

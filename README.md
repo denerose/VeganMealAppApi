@@ -271,7 +271,7 @@ bun run db:seed
 - **Quick start**: [specs/002-dev-db-seed/quickstart.md](./docs/quickstart.md) — run seed, verify data, common commands
 - **Full guide**: [specs/002-dev-db-seed/SEEDING-GUIDE.md](./docs/SEEDING-GUIDE.md) — file structure, idempotency, troubleshooting
 
-The seed creates 2 tenants, 10 meals and 15 ingredients per tenant, user settings, and 2 planned weeks per tenant (~50% meal coverage). Re-running is idempotent (no duplicates).
+The seed creates 2 tenants, 3 dev users (2 for Tenant-1, 1 for Tenant-2), 10 meals and 15 ingredients per tenant, user settings, and 2 planned weeks per tenant (~50% meal coverage). Re-running is idempotent (no duplicates).
 
 ## Deployment
 
