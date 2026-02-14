@@ -1,0 +1,29 @@
+# VeganMealAppApi Development Guidelines
+
+Auto-generated from all feature plans. Last updated: 2026-02-15
+
+## Active Technologies
+
+- TypeScript 5.x, Bun runtime + Prisma 7.x, bcrypt, uuid, pg (004-seed-dev-users)
+
+## Project Structure
+
+```text
+src/
+tests/
+```
+
+## Commands
+
+npm test && npm run lint
+
+## Code Style
+
+TypeScript 5.x, Bun runtime: Follow standard conventions
+
+## Recent Changes
+
+- 004-seed-dev-users: Added TypeScript 5.x, Bun runtime + Prisma 7.x, bcrypt, uuid, pg
+
+<!-- MANUAL ADDITIONS START -->
+<!-- MANUAL ADDITIONS END -->

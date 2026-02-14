@@ -72,10 +72,12 @@ class InMemoryUserSettingsRepository implements UserSettingsRepository {
   }
 
   async create(): Promise<UserSettings> {
+    await Promise.resolve();
     throw new Error('Not implemented');
   }
 
   async save(): Promise<UserSettings> {
+    await Promise.resolve();
     throw new Error('Not implemented');
   }
 }

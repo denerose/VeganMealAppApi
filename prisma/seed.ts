@@ -65,6 +65,7 @@ async function main(): Promise<void> {
     console.log(`   - ${result.mealsCreated} meals created`);
     console.log(`   - ${result.ingredientsCreated} ingredients created`);
     console.log(`   - ${result.tenantsCreated} tenants created`);
+    console.log(`   - ${result.usersCreated} users created`);
     console.log(`   - ${result.userSettingsCreated} user settings created`);
     console.log(`   - ${result.plannedWeeksCreated} planned weeks created`);
     console.log(`   - ${result.dayPlansCreated} day plans created`);

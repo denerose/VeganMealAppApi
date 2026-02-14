@@ -6,7 +6,7 @@ import {
   checkIdempotency,
   seedDatabase,
 } from '../../prisma/seed-utils';
-import { SEED_TENANTS, SEED_MEALS } from '../../prisma/seed-data';
+import { SEED_TENANTS, SEED_MEALS, SEED_DEV_USERS } from '../../prisma/seed-data';
 import { PrismaMealRepository } from '@/infrastructure/database/repositories/prisma-meal.repository';
 import type { PrismaClient } from '@prisma/client';
 import { resetDatabase, getTestPrisma } from '../setup';
@@ -249,6 +249,95 @@ describe('Seed Utilities', () => {
       ingredients.forEach(ing => {
         expect(ing.tenantId).toBe(tenant2Id);
       });
+    });
+  });
+
+  describe('Seed dev users (004-seed-dev-users)', () => {
+    beforeAll(async () => {
+      await resetDatabase();
+      await seedDatabase(prisma);
+    });
+
+    test('creates exactly 3 dev users by known emails', async () => {
+      const emails = SEED_DEV_USERS.map(u => u.email);
+      const users = await prisma.user.findMany({
+        where: { email: { in: emails } },
+      });
+      expect(users.length).toBe(3);
+      expect(users.map(u => u.email).sort()).toEqual(emails.slice().sort());
+    });
+
+    test('2 users for Tenant-1 and 1 for Tenant-2', async () => {
+      const tenant1Id = SEED_TENANTS[0].id;
+      const tenant2Id = SEED_TENANTS[1].id;
+      const tenant1Users = await prisma.user.count({
+        where: { tenantId: tenant1Id, email: { in: SEED_DEV_USERS.map(u => u.email) } },
+      });
+      const tenant2Users = await prisma.user.count({
+        where: { tenantId: tenant2Id, email: { in: SEED_DEV_USERS.map(u => u.email) } },
+      });
+      expect(tenant1Users).toBe(2);
+      expect(tenant2Users).toBe(1);
+    });
+
+    test('exactly one isTenantAdmin per tenant among seed dev users', async () => {
+      const tenant1Id = SEED_TENANTS[0].id;
+      const tenant2Id = SEED_TENANTS[1].id;
+      const devEmails = SEED_DEV_USERS.map(u => u.email);
+      const t1Admins = await prisma.user.count({
+        where: {
+          tenantId: tenant1Id,
+          email: { in: devEmails },
+          isTenantAdmin: true,
+        },
+      });
+      const t2Admins = await prisma.user.count({
+        where: {
+          tenantId: tenant2Id,
+          email: { in: devEmails },
+          isTenantAdmin: true,
+        },
+      });
+      expect(t1Admins).toBe(1);
+      expect(t2Admins).toBe(1);
+    });
+
+    test('re-running seed leaves dev user count at 3 (idempotent)', async () => {
+      const emails = SEED_DEV_USERS.map(u => u.email);
+      const countBefore = await prisma.user.count({
+        where: { email: { in: emails } },
+      });
+      expect(countBefore).toBe(3);
+      await seedDatabase(prisma);
+      const countAfter = await prisma.user.count({
+        where: { email: { in: emails } },
+      });
+      expect(countAfter).toBe(3);
+    });
+
+    test('when a user with seed email already exists, seed does not create duplicate', async () => {
+      await resetDatabase();
+      for (const t of SEED_TENANTS) {
+        await prisma.tenant.create({
+          data: { id: t.id, name: t.name },
+        });
+      }
+      const existingEmail = SEED_DEV_USERS[0].email;
+      await prisma.user.create({
+        data: {
+          id: SEED_DEV_USERS[0].id,
+          email: existingEmail,
+          nickname: 'Pre-existing',
+          tenantId: SEED_TENANTS[0].id,
+          isTenantAdmin: true,
+        },
+      });
+      await seedDatabase(prisma);
+      const usersWithEmail = await prisma.user.findMany({
+        where: { email: existingEmail },
+      });
+      expect(usersWithEmail.length).toBe(1);
+      expect(usersWithEmail[0].nickname).toBe('Pre-existing');
     });
   });
 

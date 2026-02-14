@@ -14,7 +14,7 @@ export class PrismaAuthRepository implements AuthRepository {
   async createTenantAndUser(
     params: CreateTenantAndUserParams
   ): Promise<{ tenant: { id: string; name: string }; user: User }> {
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async tx => {
       const tenant = await tx.tenant.create({
         data: { name: params.tenantName },
       });

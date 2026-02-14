@@ -224,7 +224,7 @@ This project follows **Clean Architecture** principles:
 
 **Benefits**: Testability, maintainability, independence from frameworks
 
-See [plan.md](./specs/001-001-meal-planning-api/plan.md) for detailed architecture
+See [plan.md](./specs/001-meal-planning-api/plan.md) for detailed architecture
 
 ## Testing
 
@@ -268,10 +268,10 @@ Development sample data is provided via a deterministic seed script. Use it to g
 bun run db:seed
 ```
 
-- **Quick start**: [specs/002-dev-db-seed/quickstart.md](./specs/002-dev-db-seed/quickstart.md) — run seed, verify data, common commands
-- **Full guide**: [specs/002-dev-db-seed/SEEDING-GUIDE.md](./specs/002-dev-db-seed/SEEDING-GUIDE.md) — file structure, idempotency, troubleshooting
+- **Quick start**: [specs/002-dev-db-seed/quickstart.md](./docs/quickstart.md) — run seed, verify data, common commands
+- **Full guide**: [specs/002-dev-db-seed/SEEDING-GUIDE.md](./docs/SEEDING-GUIDE.md) — file structure, idempotency, troubleshooting
 
-The seed creates 2 tenants, 10 meals and 15 ingredients per tenant, user settings, and 2 planned weeks per tenant (~50% meal coverage). Re-running is idempotent (no duplicates).
+The seed creates 2 tenants, 3 dev users (2 for Tenant-1, 1 for Tenant-2), 10 meals and 15 ingredients per tenant, user settings, and 2 planned weeks per tenant (~50% meal coverage). Re-running is idempotent (no duplicates).
 
 ## Deployment
 
@@ -298,7 +298,7 @@ JWT_SECRET=            # JWT signing secret (change in production!)
 1. Create feature branch: `git checkout -b feature/your-feature`
 2. Write tests first (TDD)
 3. Implement feature
-4. Run tests: `bun test`
+4. Run tests: `bun run check`
 5. Lint & format: `bun run lint:fix && bun run format`
 6. Commit: `git commit -m "feat: your feature"`
 7. Push: `git push origin feature/your-feature`
@@ -312,14 +312,14 @@ JWT_SECRET=            # JWT signing secret (change in production!)
 
 ## License
 
-MIT - See LICENSE file for details
+NOT YET ADDED
 
 ## Support
 
-- 📖 [Developer Quickstart](./specs/001-001-meal-planning-api/quickstart.md)
-- 📋 [Feature Specification](./specs/001-001-meal-planning-api/spec.md)
-- 📊 [Data Model](./specs/001-001-meal-planning-api/data-model.md)
-- 🔌 [API Specification](./specs/001-001-meal-planning-api/contracts/openapi.yaml)
+- 📖 [Developer Quickstart](./specs/001-meal-planning-api/quickstart.md)
+- 📋 [Feature Specification](./specs/001-meal-planning-api/spec.md)
+- 📊 [Data Model](./docs/data-model.md)
+- 🔌 [API Specification](./openapi.yaml)
 
 ---
 

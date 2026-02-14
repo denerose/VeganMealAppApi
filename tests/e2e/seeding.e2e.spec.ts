@@ -5,7 +5,7 @@ import { PrismaUserSettingsRepository } from '@/infrastructure/database/reposito
 import { resetDatabase, getTestPrisma } from '../setup';
 import { seedDatabase } from '../../prisma/seed-utils';
 import { WeekStartDay } from '@/domain/shared/week-start-day.enum';
-import { SEED_TENANTS, SEED_USER_SETTINGS } from '../../prisma/seed-data';
+import { SEED_TENANTS, SEED_USER_SETTINGS, SEED_DEV_USERS } from '../../prisma/seed-data';
 
 /**
  * E2E Tests: Database Seeding (US1)
@@ -125,6 +125,20 @@ describe('Database Seeding (E2E)', () => {
         expect(daysArray.length).toBe(7);
       }
     });
+  });
+
+  test('Seed creates 3 dev users with correct tenant assignment', async () => {
+    const devEmails = SEED_DEV_USERS.map(u => u.email);
+    const users = await prisma.user.findMany({
+      where: { email: { in: devEmails } },
+    });
+    expect(users.length).toBe(3);
+    const tenant1Id = SEED_TENANTS[0].id;
+    const tenant2Id = SEED_TENANTS[1].id;
+    const t1Count = users.filter(u => u.tenantId === tenant1Id).length;
+    const t2Count = users.filter(u => u.tenantId === tenant2Id).length;
+    expect(t1Count).toBe(2);
+    expect(t2Count).toBe(1);
   });
 
   test('Seed creates planned weeks with day plans', async () => {
