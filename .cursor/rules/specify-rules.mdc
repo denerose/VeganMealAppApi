@@ -3,6 +3,8 @@
 Auto-generated from all feature plans. Last updated: 2026-02-15
 
 ## Active Technologies
+- TypeScript 5.x, Bun runtime (existing); Vue 3.x (Composition API only), ES modules + Vue 3, Pinia, date-fns (existing); frontend build/dev via Vite (recommended for Vue 3 HMR) (005-web-frontend)
+- None client-side; all data via existing REST API (JWT in memory/localStorage per research) (005-web-frontend)
 
 - TypeScript 5.x, Bun runtime + Prisma 7.x, bcrypt, uuid, pg (004-seed-dev-users)
 
@@ -22,6 +24,7 @@ npm test && npm run lint
 TypeScript 5.x, Bun runtime: Follow standard conventions
 
 ## Recent Changes
+- 005-web-frontend: Added TypeScript 5.x, Bun runtime (existing); Vue 3.x (Composition API only), ES modules + Vue 3, Pinia, date-fns (existing); frontend build/dev via Vite (recommended for Vue 3 HMR)
 
 - 004-seed-dev-users: Added TypeScript 5.x, Bun runtime + Prisma 7.x, bcrypt, uuid, pg
 
